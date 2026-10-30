@@ -16,6 +16,7 @@ next-env.d.ts
 coverage/
 .vscode/
 .idea/
+.history
 
 # Claude Code local settings
 .claude/settings.local.json

@@ -244,6 +244,21 @@ export function createRoutes({ baseUrl }) {
     },
     "GET /wp-json/wc/store/v1/products/categories": () => json(storeCategories(baseUrl)),
     "GET /wp-json/wc/store/v1/products/tags": () => json(storeTags()),
+    "GET /wp-json/wc/store/v1/products/attributes": () =>
+      json([
+        { id: 1, name: "Color", taxonomy: "pa_color", type: "select", order: "menu_order", has_archives: false, count: 3 },
+        { id: 2, name: "Size", taxonomy: "pa_size", type: "select", order: "menu_order", has_archives: false, count: 3 },
+      ]),
+    "GET /wp-json/wc/store/v1/products/attributes/:id/terms": (_request, { id }) =>
+      json(
+        (id === "1" ? ["Sand", "Moss", "Ink"] : ["S", "M", "L"]).map((name, index) => ({
+          id: Number(id) * 100 + index,
+          name,
+          slug: name.toLowerCase(),
+          count: 1,
+          description: "",
+        })),
+      ),
     "GET /wp-json/wc/store/v1/products/collection-data": (request) => {
       const params = new URL(request.url).searchParams;
       const found = filterProducts(params);
