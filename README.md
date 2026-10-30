@@ -22,8 +22,9 @@ the storefront, with no configuration. If port 3000 is taken, Next.js prints the
 | Try this | How |
 | --- | --- |
 | Sign in | `demo@example.com` / `demo-password` |
-| Coupon | `WELCOME10` |
+| Coupon | `WELCOME10`, or `FREE100` for an order with no payment step |
 | Postcode | Any valid CEP, such as `01310-100` |
+| CPF and date of birth | `529.982.247-25`, any past date |
 | Card | `4111 1111 1111 1111`, any future date, any CVV |
 | Pix | Choose Pix: the demo order counts as paid after 45 seconds |
 | Cart recovery | Open `/cart/recover/demo-token` |
@@ -67,8 +68,9 @@ Set `NEXT_PUBLIC_WP_URL`, then follow [docs/WORDPRESS_SETUP.md](docs/WORDPRESS_S
 npm run dev
 ```
 
-> The starter was built from the plugins' documented contracts and tested against the mock server.
-> The setup guide has a checklist for your first connection to a real WordPress.
+> Catalog, cart, shipping and a bank transfer order were validated against a live WordPress. Cielo,
+> PayPal and Sellback were tested against the mock server. The setup guide has a checklist for your
+> first connection, and [docs/STORE_API.md](docs/STORE_API.md) has the WooCommerce Store API matrix.
 
 ## Commands
 
@@ -96,6 +98,7 @@ npm run dev
 | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Phases, decisions and backlog |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Structure, caching, sessions, payments |
 | [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Each plugin, and adding or removing one |
+| [docs/STORE_API.md](docs/STORE_API.md) | WooCommerce Store API compatibility and known gaps |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Tokens, primitives, rebranding |
 | [docs/WORDPRESS_SETUP.md](docs/WORDPRESS_SETUP.md) | Connecting and deploying |
 | [AGENTS.md](AGENTS.md) | Conventions for developers and coding agents |

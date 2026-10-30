@@ -16,7 +16,7 @@
 4. List routes this starter has no page for under **Routes without a storefront page**:
    `category`, `post_tag`, `order_pay`, `product_review`.
 5. Under **Other REST namespaces for the storefront**, add `envora/v1` or `hubgo/v1`. Cielo, PayPal
-   and Sellback register their namespaces themselves.
+   and Sellback register their namespaces themselves. Sellback also needs Headpress on the same site.
 6. In **Headpress → Storefront → Webhooks**, point the webhook at
    `https://your-store.example.com/api/revalidate` and copy the secret.
 7. Turn on the modules you need: `search`, `reviews`, `accounts`, `wishlist`, `address_book`,
@@ -49,14 +49,19 @@ npm run dev
 
 ## Validation checklist
 
-The starter was built against the plugins' documented contracts and exercised against the mock
-server, not against a live WordPress. Go through this on your first real connection:
+The catalog, cart, shipping and a bank transfer order were validated against a live WordPress with
+Headpress 1.6.0 and HubGo (see [STORE_API.md](STORE_API.md)). Everything else was exercised against
+the mock server. Go through this on your first real connection:
 
 - [ ] `npm run check:routes` passes.
+- [ ] The browser console shows no CORS error. Add this storefront's URL to the allowed origins,
+      including `http://localhost:3000` while developing.
 - [ ] Products, variations and prices match WooCommerce.
 - [ ] Installments on the product page match Parcelas Customizadas.
-- [ ] The product shipping calculator answers, and the browser console shows no CORS error.
+- [ ] The product shipping calculator answers.
 - [ ] A cart gets rates, and the delivery estimates appear.
+- [ ] Each gateway at checkout has a form. Headpress classifies some gateways as `offline`, which
+      lists them with nothing to fill in. A gateway this starter has no form for needs a provider.
 - [ ] Cielo sandbox: credit, debit with 3DS, and Pix (paying through the plugin's sandbox route).
 - [ ] PayPal sandbox: wallet, card, and Pix.
 - [ ] A recovery email link restores the cart with the coupon.

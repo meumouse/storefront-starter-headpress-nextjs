@@ -37,7 +37,7 @@ rendering its own storefront markup.
 | --- | --- |
 | `cielo_credit` | Silent Order Post token, then installments, then optional 3DS, then checkout |
 | `cielo_debit` | Same, with 3DS always required |
-| `cielo_pix` | Checkout, then QR code and copy-paste code, then polling until paid |
+| `cielo_pix` | Checkout with the document in `payment_data`, then QR code and copy-paste code, then polling until paid |
 
 Card flow (`prepare-payment.ts`):
 

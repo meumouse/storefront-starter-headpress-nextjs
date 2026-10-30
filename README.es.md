@@ -23,8 +23,9 @@ eligió.
 | Prueba esto | Cómo |
 | --- | --- |
 | Iniciar sesión | `demo@example.com` / `demo-password` |
-| Cupón | `WELCOME10` |
+| Cupón | `WELCOME10`, o `FREE100` para un pedido sin paso de pago |
 | Código postal | Cualquier CEP válido, como `01310-100` |
+| CPF y fecha de nacimiento | `529.982.247-25` y cualquier fecha pasada |
 | Tarjeta | `4111 1111 1111 1111`, cualquier fecha futura y cualquier CVV |
 | Pix | Elige Pix: el pedido de demostración se paga tras 45 segundos |
 | Recuperación de carrito | Abre `/cart/recover/demo-token` |
@@ -70,9 +71,10 @@ Define `NEXT_PUBLIC_WP_URL` y sigue [docs/WORDPRESS_SETUP.md](docs/WORDPRESS_SET
 npm run dev
 ```
 
-> El proyecto se construyó a partir de los contratos documentados de los plugins y se probó con el
-> servidor simulado. La guía de configuración incluye una lista de verificación para la primera
-> conexión con un WordPress real.
+> Catálogo, carrito, envío y un pedido por transferencia se validaron en un WordPress real. Cielo,
+> PayPal y Sellback se probaron con el servidor simulado. La guía de configuración incluye una lista
+> de verificación para la primera conexión, y [docs/STORE_API.md](docs/STORE_API.md) incluye la matriz
+> de compatibilidad con la Store API de WooCommerce.
 
 ## Comandos
 
@@ -102,6 +104,7 @@ La documentación técnica está en inglés.
 | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Fases, decisiones y backlog |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Estructura, caché, sesiones y pagos |
 | [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Cada plugin, y cómo agregar o quitar uno |
+| [docs/STORE_API.md](docs/STORE_API.md) | Compatibilidad con la Store API y brechas conocidas |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Tokens, componentes e identidad visual |
 | [docs/WORDPRESS_SETUP.md](docs/WORDPRESS_SETUP.md) | Conexión y despliegue |
 | [AGENTS.md](AGENTS.md) | Convenciones para desarrolladores y agentes de código |

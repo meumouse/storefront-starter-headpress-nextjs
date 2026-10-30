@@ -148,5 +148,7 @@ Backlog for a project built on this starter. None of it blocks a first release.
 - Banners module, order tracking page.
 - Redis server cache with `swr()` and `redisCache()` from the SDK.
 - End-to-end tests with Playwright against the mock server, in CI.
-- Validation against a real WordPress with all six plugins (see the checklist in
-  `docs/WORDPRESS_SETUP.md`).
+- Validation on one WordPress with all six plugins together (see the checklist in
+  `docs/WORDPRESS_SETUP.md`). Headpress, WooCommerce and HubGo are validated live; see
+  `docs/STORE_API.md`.
+- The Store API gaps listed in `docs/STORE_API.md`.

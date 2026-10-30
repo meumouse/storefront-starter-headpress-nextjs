@@ -79,7 +79,8 @@ CheckoutForm ──► PaymentSection ──► providerFor(method) ──► pr
 - The server decides which methods exist. The registry maps each one to a provider.
 - A provider's form hands back `payment_data` when asked. A provider with `submitsItself` (PayPal)
   draws its own button and calls `placeOrder()` itself.
-- A card or wallet method with no provider is hidden and logged, because it could never be paid.
+- `selectableMethods()` hides what the shopper cannot pick: gateways the Store API excludes from this
+  cart, the split gateway, and card or wallet methods with no provider.
 - After placing the order, `pendingPayment()` says what the shopper still has to do (Pix, bank slip)
   and `pollStatus()` follows it on the order-received page.
 
