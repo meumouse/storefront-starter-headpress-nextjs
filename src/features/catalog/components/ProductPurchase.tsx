@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Badge } from "@/components/ui/feedback";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import { WishlistButton } from "@/features/account/components/Wishlist";
 import { useCartDrawer } from "@/features/cart/components/CartDrawerProvider";
 import { t } from "@/i18n";
 import { InstallmentsTable } from "@/integrations/installments/InstallmentsTable";
@@ -140,6 +141,7 @@ export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
         <Button size="lg" className="flex-1" disabled={!canBuy} loading={pending.includes("new")} onClick={add}>
           {buttonLabel}
         </Button>
+        <WishlistButton productId={product.id} />
       </div>
 
       {error ? <Alert tone="danger">{formatError(error, "cart")}</Alert> : null}

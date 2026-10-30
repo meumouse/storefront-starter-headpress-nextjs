@@ -4,6 +4,7 @@ import { ptBR as sdkPtBr } from "@meumouse.com/headpress/messages/pt-BR";
 
 import { publicEnv } from "@/lib/env";
 
+import { account } from "./account";
 import { cart } from "./cart";
 import { catalog } from "./catalog";
 import { checkout } from "./checkout";
@@ -21,6 +22,7 @@ export const t = {
   catalog: catalog[storeLocale],
   cart: cart[storeLocale],
   checkout: checkout[storeLocale],
+  account: account[storeLocale],
 };
 
 /** The SDK's dictionary for API errors, in the same language. */
