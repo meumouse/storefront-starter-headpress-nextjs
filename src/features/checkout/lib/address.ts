@@ -41,6 +41,13 @@ export function toStoreAddress(
   };
 }
 
+/** The same address for delivery. In the Store API, `email` only exists on the billing address. */
+export function toShippingAddress(billing: Partial<Address>): Partial<Address> {
+  const shipping = { ...billing };
+  delete shipping.email;
+  return shipping;
+}
+
 export function toPayer(values: AddressFormValues, contact: ContactValues): Payer {
   return {
     firstName: values.first_name ?? "",

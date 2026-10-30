@@ -41,7 +41,7 @@ export function CartTotals({ cart }: { cart: Cart }) {
         <dt className="font-medium">{t.cart.total}</dt>
         <dd className="text-xl font-semibold">{formatPrice(totals.total)}</dd>
       </div>
-      {upfront ? (
+      {upfront && upfront.total.amount < totals.total.amount ? (
         <p className="text-right text-sm text-success">
           {t.cart.upfrontTotal(formatPrice(upfront.total), upfront.label ?? t.catalog.upfrontDefault)}
         </p>

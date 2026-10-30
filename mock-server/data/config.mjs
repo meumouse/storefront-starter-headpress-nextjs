@@ -96,6 +96,25 @@ export function storeConfig(baseUrl) {
         texts: {},
         endpoints: { calculate: `${rest}envora/v1/shipping/calculate` },
       },
+      checkout_fields: {
+        enabled: true,
+        external_fields: true,
+        brazilian_market: {
+          active: true,
+          person_type: "both",
+          only_brazil: false,
+          rg: false,
+          ie: false,
+          birthdate: true,
+          gender: false,
+          cell_phone: "optional",
+          neighborhood_required: false,
+          validate_cpf: true,
+          validate_cnpj: true,
+        },
+        fields: [],
+      },
+      split_payments: { enabled: true, checkout_enabled: true, gateway_id: "headpress_split", min_legs: 2, max_legs: 3 },
       content: { enabled: true },
       search: {
         enabled: true,
@@ -249,5 +268,7 @@ export function paymentMethods(baseUrl) {
       description: "We confirm the order after receiving the transfer.",
       config: { kind: "offline" },
     },
+    // Real stores list it too. It combines methods, so the checkout must not offer it.
+    { id: "headpress_split", title: "Split payment", description: "", config: {} },
   ];
 }

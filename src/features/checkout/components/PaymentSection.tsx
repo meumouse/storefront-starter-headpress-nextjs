@@ -1,7 +1,7 @@
 "use client";
 
 import type { Cart, PaymentMethod } from "@meumouse.com/headpress";
-import { useFormatError, useHeadpress } from "@meumouse.com/headpress/react";
+import { useCapability, useFormatError, useHeadpress } from "@meumouse.com/headpress/react";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -9,7 +9,7 @@ import { Alert, Skeleton } from "@/components/ui/feedback";
 import { ChoiceLabel } from "@/components/ui/field";
 import { t } from "@/i18n";
 
-import { providerFor } from "../payments/registry";
+import { providerFor, selectableMethods } from "../payments/registry";
 import type { Payer, PaymentData, PaymentFormHandle } from "../payments/types";
 
 interface PaymentSectionProps {
@@ -36,16 +36,11 @@ export function PaymentSection({
   const hp = useHeadpress();
   const formatError = useFormatError();
   const query = useQuery({ queryKey: ["payment-methods"], queryFn: () => hp.checkout.paymentMethods() });
+  const splitGateway = useCapability("split_payments")?.gateway_id;
 
-  // Methods without a provider stay out: a card method with no form could never be paid.
   const methods = useMemo(
-    () =>
-      (query.data ?? []).filter((method) => {
-        const supported = providerFor(method) !== null;
-        if (!supported) console.warn(`[checkout] No payment provider for "${method.id}" (${method.kind}).`);
-        return supported;
-      }),
-    [query.data],
+    () => selectableMethods(query.data ?? [], cart, splitGateway),
+    [query.data, cart, splitGateway],
   );
 
   if (query.isPending) return <Skeleton className="h-40" />;

@@ -34,6 +34,20 @@ export function findVariationId(
   return match?.id ?? null;
 }
 
+/**
+ * The `variation` of the Store API's `add-item`: a global attribute goes by its taxonomy (`pa_color`),
+ * one defined on the product by its name, and the value is the term.
+ */
+export function addItemVariation(
+  product: Pick<Product, "attributes">,
+  selection: VariationSelection,
+): { attribute: string; value: string }[] {
+  return selectableAttributes(product).map((attribute) => ({
+    attribute: attribute.taxonomy ?? attribute.name,
+    value: selection[attribute.name] ?? "",
+  }));
+}
+
 /** The selection a product opens with, from the defaults WooCommerce sets. */
 export function defaultSelection(product: Pick<Product, "attributes">): VariationSelection {
   const selection: VariationSelection = {};

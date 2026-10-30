@@ -1,7 +1,7 @@
 import type { PlacedOrder } from "@meumouse.com/headpress";
 import { describe, expect, it } from "vitest";
 
-import { cieloPendingPix, cieloStatus } from "./provider";
+import { cieloDocumentKey, cieloPendingPix, cieloStatus } from "./provider";
 
 function order(paymentDetails: Record<string, string>): PlacedOrder {
   return { paymentDetails } as unknown as PlacedOrder;
@@ -27,6 +27,13 @@ describe("cieloPendingPix", () => {
 
   it("is null for a card order", () => {
     expect(cieloPendingPix(order({ cielo_status: "paid" }))).toBeNull();
+  });
+});
+
+describe("cieloDocumentKey", () => {
+  it("uses the key the gateway publishes, else the plugin's own", () => {
+    expect(cieloDocumentKey({ payment_data: { document: "custom_document" } })).toBe("custom_document");
+    expect(cieloDocumentKey({})).toBe("wc_cielo_document");
   });
 });
 

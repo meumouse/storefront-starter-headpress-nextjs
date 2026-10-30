@@ -1,8 +1,8 @@
 "use client";
 
-import { isHeadpressError, type PaymentMethod } from "@meumouse.com/headpress";
+import type { PaymentMethod } from "@meumouse.com/headpress";
 import { cartEventParams } from "@meumouse.com/headpress/analytics";
-import { isValidCep } from "@meumouse.com/headpress/br";
+import { isValidCep, parseBirthDate } from "@meumouse.com/headpress/br";
 import {
   useAddressForm,
   useCapability,
@@ -23,18 +23,27 @@ import { ChoiceLabel, Field, Input, Textarea } from "@/components/ui/field";
 import { Card } from "@/components/ui/layout";
 import { paths } from "@/config/routes";
 import { checkoutTrackingFields, getAnalytics } from "@/features/analytics/analytics";
+import { CartNotices } from "@/features/cart/components/CartNotices";
 import { ShippingOptions } from "@/features/cart/components/ShippingOptions";
 import { t } from "@/i18n";
 import { RecoveryCouponBanner } from "@/integrations/sellback/RecoveryCouponBanner";
 import { useContactCapture } from "@/integrations/sellback/useContactCapture";
 
-import { isValidEmail, toPayer, toStoreAddress, type ContactValues } from "../lib/address";
+import { isValidEmail, toPayer, toShippingAddress, toStoreAddress, type ContactValues } from "../lib/address";
+import {
+  checkoutErrorMessage,
+  validatePersonal,
+  type BrazilianMarketRules,
+  type PersonalErrors,
+  type PersonalValues,
+} from "../lib/brazilian-fields";
 import { rememberPlacedOrder } from "../lib/placed-order";
 import { pendingPaymentOf, providerFor } from "../payments/registry";
 import { PaymentError, type Payer, type PaymentData, type PaymentFormHandle } from "../payments/types";
 import { AddressFields } from "./AddressFields";
 import { OrderSummary } from "./OrderSummary";
 import { PaymentSection } from "./PaymentSection";
+import { PersonalFields } from "./PersonalFields";
 
 const FORM_ID = "checkout-form";
 
@@ -54,10 +63,13 @@ export function CheckoutForm() {
   const { customer } = useCustomer();
   const [{ cart, status }, cartActions] = useCart({ load: "always" });
   const [address, addressActions] = useAddressForm();
-  const brazilianFields = Boolean(useCapability("checkout_fields"));
+  const brazilianRules: BrazilianMarketRules | undefined = useCapability("checkout_fields")?.brazilian_market;
+  const brazilianFields = Boolean(brazilianRules?.active);
   const config = useStoreConfig();
 
   const [contact, setContact] = useState<ContactValues>({ email: "", phone: "" });
+  const [personal, setPersonal] = useState<PersonalValues>({ birthdate: "", gender: "" });
+  const [personalErrors, setPersonalErrors] = useState<PersonalErrors>({});
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [contactErrors, setContactErrors] = useState<{ email?: string }>({});
   const [note, setNote] = useState("");
@@ -125,29 +137,38 @@ export function CheckoutForm() {
     setContactErrors({ email: emailValid ? undefined : t.checkout.emailInvalid });
     const hasRate = !cart?.needsShipping || cart.totals.shipping !== null;
     setShippingError(!hasRate);
+    const personalProblems = validatePersonal(personal, contact, brazilianRules);
+    setPersonalErrors(personalProblems);
 
-    if (!addressValid || !emailValid || !hasRate) {
+    if (!addressValid || !emailValid || !hasRate || Object.keys(personalProblems).length > 0) {
       setFormError(t.checkout.fixFields);
       return null;
     }
     setFormError(null);
     return toPayer(address.values, contact);
-  }, [addressActions, address.values, cart, contact]);
+  }, [addressActions, address.values, cart, contact, personal, brazilianRules]);
 
   const placeOrder = useCallback(
     async (paymentData: PaymentData): Promise<boolean> => {
-      if (!method) return false;
+      // A free order has no payment method: the Store API only asks for one when `needs_payment`.
+      if (!method && cart?.needsPayment) return false;
       setPlacing(true);
       setFormError(null);
       try {
-        const storeAddress = toStoreAddress(address.values, contact, { brazilianFields });
+        const billingAddress = toStoreAddress(address.values, contact, { brazilianFields });
+        // TODO(sdk): `place()` cannot send the Store API's `expected_total`, which would refuse the
+        // order if the total changed since the shopper last saw it.
         const placed = await hp.checkout.place({
-          billingAddress: storeAddress,
-          shippingAddress: storeAddress,
-          paymentMethod: method.id,
+          billingAddress,
+          shippingAddress: toShippingAddress(billingAddress),
+          paymentMethod: method?.id ?? "",
           paymentData,
           customerNote: note.trim() || undefined,
-          fields: addressActions.checkoutFields({ cellphone: contact.phone }),
+          fields: addressActions.checkoutFields({
+            cellphone: contact.phone,
+            birthdate: parseBirthDate(personal.birthdate) || undefined,
+            gender: personal.gender || undefined,
+          }),
           ...checkoutTrackingFields(config),
         });
 
@@ -156,7 +177,7 @@ export function CheckoutForm() {
           return false;
         }
 
-        const provider = providerFor(method);
+        const provider = method ? providerFor(method) : null;
         if (provider) {
           rememberPlacedOrder({
             orderId: placed.orderId,
@@ -178,20 +199,34 @@ export function CheckoutForm() {
         void cartActions.load();
         return true;
       } catch (error) {
-        setFormError(isHeadpressError(error) ? formatError(error, "checkout") : t.common.genericError);
+        setFormError(checkoutErrorMessage(error, formatError, t.common.genericError));
         return false;
       } finally {
         setPlacing(false);
       }
     },
-    [method, address.values, contact, brazilianFields, hp, note, addressActions, router, cartActions, formatError, config],
+    [
+      method,
+      cart,
+      address.values,
+      contact,
+      personal,
+      brazilianFields,
+      hp,
+      note,
+      addressActions,
+      router,
+      cartActions,
+      formatError,
+      config,
+    ],
   );
 
   const provider = method ? providerFor(method) : null;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!method || placing) return;
+    if ((!method && cart?.needsPayment) || placing) return;
     if (!validate()) return;
 
     setPlacing(true);
@@ -235,7 +270,7 @@ export function CheckoutForm() {
                 onChange={(event) => setContact((previous) => ({ ...previous, email: event.target.value }))}
               />
             </Field>
-            <Field label={t.checkout.phone}>
+            <Field label={t.checkout.phone} error={personalErrors.phone ? t.checkout.fieldRequired : undefined}>
               <Input
                 type="tel"
                 autoComplete="tel"
@@ -255,6 +290,12 @@ export function CheckoutForm() {
 
         <Section title={t.checkout.addressTitle}>
           <AddressFields state={address} actions={addressActions} />
+          <PersonalFields
+            rules={brazilianRules}
+            values={personal}
+            errors={personalErrors}
+            onChange={(changes) => setPersonal((previous) => ({ ...previous, ...changes }))}
+          />
         </Section>
 
         {cart.needsShipping ? (
@@ -268,21 +309,23 @@ export function CheckoutForm() {
           </Section>
         ) : null}
 
-        <Section title={t.checkout.paymentTitle}>
-          <PaymentSection
-            cart={cart}
-            guest={!customer}
-            selectedId={method?.id ?? null}
-            onSelect={(next) => {
-              setFormError(null);
-              setMethod(next);
-            }}
-            getPayer={validate}
-            register={register}
-            placeOrder={placeOrder}
-            onError={setFormError}
-          />
-          <Field label={t.checkout.orderNote}>
+        <Section title={cart.needsPayment ? t.checkout.paymentTitle : t.checkout.orderNote}>
+          {cart.needsPayment ? (
+            <PaymentSection
+              cart={cart}
+              guest={!customer}
+              selectedId={method?.id ?? null}
+              onSelect={(next) => {
+                setFormError(null);
+                setMethod(next);
+              }}
+              getPayer={validate}
+              register={register}
+              placeOrder={placeOrder}
+              onError={setFormError}
+            />
+          ) : null}
+          <Field label={t.checkout.orderNote} className={cart.needsPayment ? undefined : "[&_label]:sr-only"}>
             <Textarea value={note} onChange={(event) => setNote(event.target.value)} />
           </Field>
         </Section>
@@ -291,10 +334,11 @@ export function CheckoutForm() {
       {/* Outside the form: the summary has the coupon form, and forms cannot nest. */}
       <div className="flex flex-col gap-4 lg:sticky lg:top-6">
         <RecoveryCouponBanner cart={cart} />
+        <CartNotices cart={cart} />
         <OrderSummary cart={cart} />
         {formError ? <Alert tone="danger">{formError}</Alert> : null}
         {!provider?.submitsItself ? (
-          <Button type="submit" form={FORM_ID} size="lg" disabled={!method} loading={placing}>
+          <Button type="submit" form={FORM_ID} size="lg" disabled={cart.needsPayment && !method} loading={placing}>
             {t.checkout.placeOrder}
           </Button>
         ) : null}

@@ -3,7 +3,7 @@
  * its provider under `src/integrations/<gateway>` and list it here. To remove one, delete the line
  * and the folder.
  */
-import type { PaymentMethod, PlacedOrder } from "@meumouse.com/headpress";
+import type { Cart, PaymentMethod, PlacedOrder } from "@meumouse.com/headpress";
 
 import { cieloCardProvider, cieloPixProvider } from "@/integrations/cielo/provider";
 import { paypalButtonsProvider, paypalPixProvider } from "@/integrations/paypal/provider";
@@ -48,6 +48,24 @@ export function providerFor(method: PaymentMethod): PaymentProvider | null {
 
 export function providerById(id: string): PaymentProvider | null {
   return [...providers, offlineProvider].find((provider) => provider.id === id) ?? null;
+}
+
+/**
+ * The methods the shopper can pick. Headpress lists every enabled gateway; the Store API's
+ * `payment_methods` says which ones this cart can use, since a gateway may depend on the cart's
+ * contents or total. The split gateway combines methods, so it is never one to pick. A method
+ * without a provider stays out, because the order could never be paid.
+ */
+export function selectableMethods(
+  methods: readonly PaymentMethod[],
+  cart: Pick<Cart, "paymentMethods">,
+  splitGateway?: string,
+): PaymentMethod[] {
+  return methods.filter((method) => {
+    if (method.id === splitGateway) return false;
+    if (cart.paymentMethods.length > 0 && !cart.paymentMethods.includes(method.id)) return false;
+    return providerFor(method) !== null;
+  });
 }
 
 /** What the order still needs from the shopper, from its provider or the SDK's reading of the answer. */

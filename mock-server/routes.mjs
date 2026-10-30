@@ -303,7 +303,12 @@ export function createRoutes({ baseUrl }) {
       cartResponse(getCart(request.headers.get("Cart-Token")), baseUrl),
     "POST /wp-json/wc/store/v1/cart/add-item": async (request) => {
       const cart = getCart(request.headers.get("Cart-Token"));
-      const { error } = addItem(cart, await request.json(), baseUrl);
+      const body = await request.json();
+      // The demo's attributes are global: the Store API wants the taxonomy, not the label.
+      if (body.variation?.some(({ attribute }) => !attribute.startsWith("pa_"))) {
+        return wpError(400, "woocommerce_rest_invalid_variation_data", "Unknown variation attribute.");
+      }
+      const { error } = addItem(cart, body, baseUrl);
       if (error) return wpError(400, error, "This product cannot be purchased.");
       return cartResponse(cart, baseUrl, 201);
     },
@@ -389,19 +394,28 @@ export function createRoutes({ baseUrl }) {
       const body = await request.json();
       if (cart.items.length === 0) return wpError(400, "woocommerce_rest_cart_empty", "Your cart is empty.");
 
-      const method = paymentMethods(baseUrl).find((entry) => entry.id === body.payment_method);
-      if (!method) return wpError(400, "woocommerce_rest_invalid_payment_method", "Choose a payment method.");
+      const birthdate = body.extensions?.headpress?.checkout_fields?.values?.billing_birthdate;
+      if (!birthdate) {
+        const message = "Date of birth is a required field.";
+        return wpError(400, "headpress_checkout_field_invalid", message, { fields: { billing_birthdate: message } });
+      }
 
       const totals = cartTotals(cart, baseUrl);
+      const method = paymentMethods(baseUrl).find((entry) => entry.id === body.payment_method);
+      // A free order has no payment to make, so it needs no method.
+      if (!method && totals.total > 0) {
+        return wpError(400, "woocommerce_rest_invalid_payment_method", "Choose a payment method.");
+      }
+
       const id = nextOrderId++;
-      const pix = method.config.kind === "pix";
+      const pix = method?.config.kind === "pix";
       const order = {
         id,
         key: `wc_order_${randomUUID().slice(0, 13)}`,
-        status: pix || method.id === "bacs" ? "pending" : "processing",
+        status: pix || method?.id === "bacs" ? "pending" : "processing",
         pix,
-        paymentMethod: method.id,
-        paymentTitle: method.title,
+        paymentMethod: method?.id ?? "",
+        paymentTitle: method?.title ?? "",
         createdAt: new Date().toISOString(),
         createdAtMs: Date.now(),
         expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
@@ -440,8 +454,8 @@ export function createRoutes({ baseUrl }) {
         customer_note: "",
         billing_address: body.billing_address,
         shipping_address: body.shipping_address,
-        payment_method: method.id,
-        payment_result: paymentResult(order, method.id, baseUrl),
+        payment_method: order.paymentMethod,
+        payment_result: paymentResult(order, order.paymentMethod, baseUrl),
         totals: { currency_code: "BRL" },
         extensions: {},
       });

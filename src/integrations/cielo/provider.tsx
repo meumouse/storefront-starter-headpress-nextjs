@@ -1,6 +1,6 @@
 import type { PlacedOrder } from "@meumouse.com/headpress";
 
-import { PixNotice } from "@/features/checkout/components/PixNotice";
+import { createPixForm } from "@/features/checkout/components/PixNotice";
 import type { PaymentProvider, PaymentStatus, PendingPayment } from "@/features/checkout/payments/types";
 
 import { fetchCieloOrderPayment } from "./api";
@@ -27,6 +27,12 @@ export function cieloStatus(status: string): PaymentStatus {
   return "pending";
 }
 
+/** The key the gateway publishes for the document, or the plugin's own. */
+export function cieloDocumentKey(config: Record<string, unknown>): string {
+  const keys = config.payment_data as { document?: unknown } | undefined;
+  return typeof keys?.document === "string" && keys.document ? keys.document : "wc_cielo_document";
+}
+
 export const cieloCardProvider: PaymentProvider = {
   id: "cielo-card",
   supports: (method) => CARD_GATEWAYS.includes(method.id),
@@ -36,7 +42,7 @@ export const cieloCardProvider: PaymentProvider = {
 export const cieloPixProvider: PaymentProvider = {
   id: "cielo-pix",
   supports: (method) => method.id === "cielo_pix",
-  Form: PixNotice,
+  Form: createPixForm((method) => cieloDocumentKey(method.config)),
   pendingPayment: cieloPendingPix,
   pollStatus: async (hp, { orderId, orderKey }) =>
     cieloStatus((await fetchCieloOrderPayment(hp, orderId, orderKey)).status),

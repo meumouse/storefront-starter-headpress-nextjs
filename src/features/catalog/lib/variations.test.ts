@@ -1,7 +1,7 @@
 import type { Product } from "@meumouse.com/headpress";
 import { describe, expect, it } from "vitest";
 
-import { defaultSelection, findVariationId, isTermAvailable } from "./variations";
+import { addItemVariation, defaultSelection, findVariationId, isTermAvailable } from "./variations";
 
 function attribute(name: string, slugs: string[], defaultSlug?: string) {
   return {
@@ -31,6 +31,17 @@ describe("findVariationId", () => {
   it("matches exact values and wildcards", () => {
     expect(findVariationId(product, { Color: "sand", Size: "m" })).toBe(2);
     expect(findVariationId(product, { Color: "ink", Size: "s" })).toBe(3);
+  });
+});
+
+describe("addItemVariation", () => {
+  it("sends the taxonomy of a global attribute and the name of a local one", () => {
+    const local = { ...attribute("Cor", ["verde"]), id: 0, taxonomy: null };
+
+    expect(addItemVariation({ attributes: [attribute("Size", ["s"]), local] }, { Size: "s", Cor: "verde" })).toEqual([
+      { attribute: "pa_size", value: "s" },
+      { attribute: "Cor", value: "verde" },
+    ]);
   });
 });
 

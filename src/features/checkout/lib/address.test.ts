@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isValidEmail, toPayer, toStoreAddress } from "./address";
+import { isValidEmail, toPayer, toShippingAddress, toStoreAddress } from "./address";
 
 const VALUES = {
   first_name: "Ana",
@@ -34,6 +34,15 @@ describe("toStoreAddress", () => {
       email: "ana@example.com",
       phone: "11999998888",
     });
+  });
+});
+
+describe("toShippingAddress", () => {
+  it("drops the email, which only the billing address has", () => {
+    const shipping = toShippingAddress(toStoreAddress(VALUES, CONTACT, { brazilianFields: true }));
+
+    expect(shipping).not.toHaveProperty("email");
+    expect(shipping).toMatchObject({ first_name: "Ana", postcode: "01310100" });
   });
 });
 

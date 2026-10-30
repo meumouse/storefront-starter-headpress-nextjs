@@ -17,6 +17,7 @@ import { ProductShippingCalculator } from "@/integrations/shipping/ProductShippi
 import { cn } from "@/lib/utils";
 
 import {
+  addItemVariation,
   defaultSelection,
   findVariationId,
   isTermAvailable,
@@ -31,9 +32,11 @@ export type ClientProduct = Omit<Product, "raw">;
 interface ProductPurchaseProps {
   product: ClientProduct;
   variations: ClientProduct[];
+  /** Where an external product is sold, with the words WooCommerce uses for the button. */
+  external?: { url: string; text: string } | null;
 }
 
-export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
+export function ProductPurchase({ product, variations, external = null }: ProductPurchaseProps) {
   const [{ pending, error }, { addItem, clearError }] = useCart();
   const formatError = useFormatError();
   const { setOpen: openCart } = useCartDrawer();
@@ -64,9 +67,7 @@ export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
     const cart = await addItem({
       id: variationId ?? product.id,
       quantity,
-      variation: isVariable
-        ? attributes.map((attribute) => ({ attribute: attribute.name, value: selection[attribute.name] ?? "" }))
-        : undefined,
+      variation: isVariable ? addItemVariation(product, selection) : undefined,
     });
     if (!cart) return;
     openCart(true);
@@ -95,7 +96,8 @@ export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
       {attributes.map((attribute) => {
         const chosen = selection[attribute.name];
         return (
-          <fieldset key={attribute.id} className="flex flex-col gap-2">
+          // Keys by name: WooCommerce sends id 0 for attributes defined on the product itself.
+          <fieldset key={attribute.name} className="flex flex-col gap-2">
             <legend className="mb-2 text-sm font-medium">
               {attribute.name}
               {chosen ? (
@@ -109,7 +111,7 @@ export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
                 const available = isTermAvailable(product, selection, attribute.name, term.slug, soldOut);
                 return (
                   <button
-                    key={term.id}
+                    key={term.slug}
                     type="button"
                     aria-pressed={chosen === term.slug}
                     disabled={!available}
@@ -138,7 +140,7 @@ export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
       ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
-        {!current.quantity.soldIndividually ? (
+        {!current.quantity.soldIndividually && !external ? (
           <QuantityStepper
             value={quantity}
             onChange={setQuantity}
@@ -151,9 +153,17 @@ export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
             className="h-13"
           />
         ) : null}
-        <Button size="lg" className="flex-1" disabled={!canBuy} loading={pending.includes("new")} onClick={add}>
-          {buttonLabel}
-        </Button>
+        {external ? (
+          <Button asChild size="lg" className="flex-1">
+            <a href={external.url} target="_blank" rel="noreferrer">
+              {external.text}
+            </a>
+          </Button>
+        ) : (
+          <Button size="lg" className="flex-1" disabled={!canBuy} loading={pending.includes("new")} onClick={add}>
+            {buttonLabel}
+          </Button>
+        )}
         <WishlistButton productId={product.id} />
       </div>
 

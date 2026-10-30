@@ -1,7 +1,7 @@
 import type { PaymentMethod, PlacedOrder } from "@meumouse.com/headpress";
 import { describe, expect, it } from "vitest";
 
-import { pendingPaymentOf, providerFor } from "./registry";
+import { pendingPaymentOf, providerFor, selectableMethods } from "./registry";
 
 function method(id: string, kind: string, config: Record<string, unknown> = {}): PaymentMethod {
   return { id, kind, config: { kind, ...config } } as unknown as PaymentMethod;
@@ -21,6 +21,25 @@ describe("providerFor", () => {
 
   it("refuses a card gateway without a form, which could never be paid", () => {
     expect(providerFor(method("some_card_gateway", "card"))).toBeNull();
+  });
+});
+
+describe("selectableMethods", () => {
+  const methods = [
+    method("cielo_pix", "pix"),
+    method("bacs", "offline"),
+    method("headpress_split", "other"),
+    method("some_card_gateway", "card"),
+  ];
+  const ids = (cart: { paymentMethods: string[] }, split?: string) =>
+    selectableMethods(methods, cart, split).map((entry) => entry.id);
+
+  it("hides the split gateway and methods without a provider", () => {
+    expect(ids({ paymentMethods: [] }, "headpress_split")).toEqual(["cielo_pix", "bacs"]);
+  });
+
+  it("offers only what the Store API says this cart can use", () => {
+    expect(ids({ paymentMethods: ["bacs"] }, "headpress_split")).toEqual(["bacs"]);
   });
 });
 

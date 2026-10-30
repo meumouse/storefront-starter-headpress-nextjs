@@ -12,6 +12,7 @@ import { t } from "@/i18n";
 import { RecoveryCouponBanner } from "@/integrations/sellback/RecoveryCouponBanner";
 
 import { CartLines } from "./CartLines";
+import { CartNotices } from "./CartNotices";
 import { CartPostcodeForm } from "./CartPostcodeForm";
 import { CartTotals } from "./CartTotals";
 import { CouponForm } from "./CouponForm";
@@ -42,6 +43,7 @@ export function CartPageContent() {
     <div className="grid items-start gap-8 lg:grid-cols-[1fr_24rem]">
       <div className="flex flex-col gap-4">
         <RecoveryCouponBanner cart={cart} />
+        <CartNotices cart={cart} />
         {cart.freeShipping ? <FreeShippingProgress progress={cart.freeShipping} /> : null}
         <CartLines />
       </div>

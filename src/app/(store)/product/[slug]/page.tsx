@@ -28,6 +28,13 @@ function toClientProduct(product: Product): ClientProduct {
   return client as ClientProduct;
 }
 
+/** External products are sold elsewhere: the Store API cannot add them to the cart. */
+function externalLink(product: Product): { url: string; text: string } | null {
+  const { add_to_cart: addToCart } = product.raw;
+  if (product.type !== "external" || !addToCart?.url) return null;
+  return { url: addToCart.url, text: addToCart.text || t.catalog.addToCart };
+}
+
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = await safeRead((hp) => hp.catalog.get(slug));
@@ -96,7 +103,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
             ) : null}
           </div>
           {product.shortDescription ? <ContentBody html={product.shortDescription} /> : null}
-          <ProductPurchase product={toClientProduct(product)} variations={variations.map(toClientProduct)} />
+          <ProductPurchase
+            product={toClientProduct(product)}
+            variations={variations.map(toClientProduct)}
+            external={externalLink(product)}
+          />
           {product.sku ? <p className="text-xs text-ink-subtle">{t.catalog.sku(product.sku)}</p> : null}
         </div>
       </div>

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 
 import { fixtures } from "@meumouse.com/headpress/testing";
 
+import { paymentMethods } from "../data/config.mjs";
 import { findSellable, installmentPlans } from "./catalog.mjs";
 
 const CURRENCY = fixtures.storeCart().totals;
@@ -10,7 +11,7 @@ export const FREE_SHIPPING_THRESHOLD = 29900;
 const PIX_PERCENT = 5;
 
 /** Coupons the demo accepts. `sellback-5` is the one recovery links apply. */
-const COUPONS = { welcome10: 10, "sellback-5": 5 };
+const COUPONS = { welcome10: 10, "sellback-5": 5, free100: 100 };
 
 const carts = new Map();
 
@@ -138,6 +139,7 @@ export function toStoreCart(cart, baseUrl) {
   const upfront = Math.round(total * (1 - PIX_PERCENT / 100));
   const best = installmentPlans(total).filter((plan) => !plan.has_interest).at(-1);
   const empty = fixtures.storeCart().shipping_address;
+  const paymentMethodIds = paymentMethods(baseUrl).map((method) => method.id);
 
   const rates = options.map((option) => ({
     ...CURRENCY,
@@ -172,7 +174,8 @@ export function toStoreCart(cart, baseUrl) {
     shipping_address: { ...empty, ...cart.shipping },
     billing_address: { ...empty, email: "", ...cart.billing },
     needs_shipping: cart.items.length > 0,
-    needs_payment: cart.items.length > 0,
+    needs_payment: total > 0,
+    payment_methods: total > 0 ? paymentMethodIds : [],
     has_calculated_shipping: options.length > 0,
     shipping_rates:
       options.length > 0

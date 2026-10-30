@@ -1,6 +1,6 @@
 import type { PlacedOrder } from "@meumouse.com/headpress";
 
-import { PixNotice } from "@/features/checkout/components/PixNotice";
+import { createPixForm } from "@/features/checkout/components/PixNotice";
 import type { PaymentProvider, PaymentStatus, PendingPayment } from "@/features/checkout/payments/types";
 
 import { fetchPayPalPixStatus } from "./api";
@@ -39,7 +39,7 @@ export const paypalButtonsProvider: PaymentProvider = {
 export const paypalPixProvider: PaymentProvider = {
   id: "paypal-pix",
   supports: (method) => isPayPalGateway(method.id) && toPayPalConfig(method.config)?.flow === "pix",
-  Form: PixNotice,
+  Form: createPixForm(() => "document"),
   pendingPayment: paypalPendingPix,
   pollStatus: async (hp, { orderId, orderKey }) => toStatus(await fetchPayPalPixStatus(hp, orderId, orderKey)),
 };
