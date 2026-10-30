@@ -1,0 +1,253 @@
+/** `GET /headpress/v1/store/config`, as a store with all six plugins publishes it. */
+export function storeConfig(baseUrl) {
+  const rest = `${baseUrl}/wp-json/`;
+  return {
+    schema_version: 1,
+    version: "mock00000001",
+    generated_at: new Date().toISOString(),
+    store: {
+      name: "Kestrel & Co.",
+      description: "A demo store running on a mock WordPress.",
+      language: "en-US",
+      timezone: "America/Sao_Paulo",
+      headpress_version: "1.6.0",
+      urls: {
+        storefront: "http://localhost:3000",
+        backend: baseUrl,
+        rest,
+        store_api: `${rest}wc/store/v1`,
+      },
+    },
+    routes: {
+      home: "/",
+      blog: "/blog",
+      post: "/blog/{slug}",
+      page: "/{path}",
+      shop: "/shop",
+      product: "/product/{slug}",
+      product_cat: "/category/{slug}",
+      product_tag: "/tag/{slug}",
+      cart: "/cart",
+      checkout: "/checkout",
+      order_received: "/checkout/order-received?order_id={order_id}&key={order_key}",
+      account: "/account",
+      account_order: "/account/orders/{order_id}",
+      password_reset: "/account/reset-password?key={key}&login={login}",
+      sellback_recovery: "/cart/recover/{token}",
+      sellback_unsubscribe: "/unsubscribe/{token}",
+    },
+    commerce: {
+      currency: {
+        code: "BRL",
+        symbol: "R$",
+        minor_unit: 2,
+        decimal_separator: ",",
+        thousand_separator: ".",
+        prefix: "R$ ",
+        suffix: "",
+      },
+      prices_include_tax: true,
+      taxes_enabled: false,
+      tax_display_shop: "incl",
+      tax_display_cart: "incl",
+      default_country: "BR",
+      selling_countries: ["BR"],
+      shipping_countries: ["BR"],
+      units: { weight: "kg", dimension: "cm" },
+      pages: { terms: "/terms", privacy: "/privacy" },
+      policies: {
+        free_shipping_threshold: 29900,
+        handling_days: { min: 1, max: 2 },
+        transit_days: { min: 3, max: 8 },
+        return_window_days: 7,
+        min_order_amount: null,
+      },
+    },
+    modules: {
+      woocommerce: {
+        enabled: true,
+        free_shipping_threshold: "299.00",
+        min_order_amount: "",
+        handling_days: { min: "1", max: "2" },
+        transit_days: { min: "3", max: "8" },
+        return_window_days: "7",
+        order_attribution: { enabled: true, session_length: 30 },
+        abandoned_cart: true,
+      },
+      installments: {
+        enabled: true,
+        source: "wc-custom-installments",
+        store_api_key: "wc-custom-installments",
+        max_installments: 10,
+        min_installment: 2000,
+        best_installment: "both",
+        payment_methods: { pix: true, ticket: false, credit: true, debit: true },
+        card_brands: { credit: [{ id: "visa", label: "Visa" }, { id: "mastercard", label: "Mastercard" }], debit: [] },
+        texts: {},
+      },
+      shipping: {
+        enabled: true,
+        source: "hubgo",
+        calculator: true,
+        preference: false,
+        handling_days: 1,
+        free_shipping_threshold: 29900,
+        primary_color: "",
+        texts: {},
+        endpoints: { calculate: `${rest}envora/v1/shipping/calculate` },
+      },
+      content: { enabled: true },
+      search: {
+        enabled: true,
+        min_chars: 2,
+        suggest_limit: 6,
+        suggest_groups: ["products", "categories"],
+        suggest_show: ["image", "price"],
+        did_you_mean: false,
+        store_api: false,
+        ready: true,
+        endpoints: {},
+      },
+      reviews: { enabled: true, author_display: "first_name_initial", per_page: 5, rating_enabled: true },
+      accounts: { enabled: true },
+      wishlist: { enabled: true },
+      address_book: { enabled: true },
+      consent: {
+        enabled: true,
+        version: 1,
+        cookie_days: 180,
+        categories: [
+          { id: "necessary", label: "Necessary", required: true },
+          { id: "analytics", label: "Analytics", required: false },
+          { id: "marketing", label: "Marketing", required: false },
+        ],
+        texts: {
+          message: "We use cookies to run the store and, with your consent, to understand how it is used.",
+          accept_all: "Accept all",
+          reject_all: "Reject optional",
+          customize: "Customize",
+          save: "Save choices",
+          policy_link: "Privacy policy",
+        },
+        consent_mode: {
+          ad_storage: "marketing",
+          ad_user_data: "marketing",
+          ad_personalization: "marketing",
+          analytics_storage: "analytics",
+          functionality_storage: "necessary",
+          personalization_storage: "necessary",
+          security_storage: "necessary",
+        },
+        wait_for_update: 500,
+        record_endpoint: null,
+        privacy_path: "/privacy",
+        consent_defaults: {},
+      },
+      sellback: {
+        enabled: true,
+        capture: true,
+        recovery_route: "sellback_recovery",
+        unsubscribe_route: "sellback_unsubscribe",
+        unsubscribe_url: `${rest}sellback/v1/store/unsubscribe`,
+        preferences_url: `${rest}sellback/v1/store/preferences`,
+      },
+      cielo_store_api: {
+        enabled: true,
+        environment: "sandbox",
+        gateways: ["cielo_credit", "cielo_debit", "cielo_pix"],
+        endpoints: {
+          order_payment: `${rest}wc-cielo/v1/store/orders/{order_id}/payment?key={order_key}`,
+          sop_access_token: `${rest}wc-cielo/v1/store/sop/access-token`,
+          installments: `${rest}wc-cielo/v1/store/installments`,
+        },
+      },
+      paypal_store_api: {
+        enabled: true,
+        clientId: "sb",
+        mode: "sandbox",
+        currency: "BRL",
+        gateways: { paypal_store_api: "wallet", paypal_store_api_pix: "pix" },
+      },
+    },
+  };
+}
+
+/** `GET /headpress/v1/store/checkout/payment-methods`, with each gateway's public config. */
+export function paymentMethods(baseUrl) {
+  const cielo = `${baseUrl}/wp-json/wc-cielo/v1/store`;
+  const paymentData = {
+    document: "wc_cielo_document",
+    payment_token: "wc_cielo_payment_token",
+    brand: "wc_cielo_brand",
+    holder: "wc_cielo_holder",
+    last4: "wc_cielo_card_last4",
+    installments: "wc_cielo_installments",
+  };
+  const card = (method) => ({
+    kind: "card",
+    method,
+    environment: "sandbox",
+    brands: ["Visa", "Master", "Elo", "Amex"],
+    // The contract's real script is Cielo's. This stand-in returns a fake token, so demo card
+    // numbers stay in the browser exactly as a real card would.
+    sop: { script_url: `${baseUrl}/mock/silentorderpost.js`, access_token: `${cielo}/sop/access-token` },
+    three_ds: "off",
+    three_ds_access_token: `${cielo}/3ds/access-token`,
+    capture: "automatic",
+    installments:
+      method === "credit"
+        ? {
+            modality: "ByMerchant",
+            max_installments: 10,
+            interest_free_installments: 6,
+            interest_rate: 1.99,
+            min_installment_amount: 2000,
+            single_installment_brands: ["Diners", "Discover", "JCB"],
+          }
+        : null,
+    payment_data: paymentData,
+  });
+  const paypal = {
+    clientId: "sb",
+    mode: "sandbox",
+    intent: "capture",
+    currency: "BRL",
+    locale: "en_US",
+    disableFunding: "",
+    requiresDocument: false,
+    routes: {
+      createOrder: `${baseUrl}/wp-json/paypal-store-api/v1/orders`,
+      payOrder: `${baseUrl}/wp-json/paypal-store-api/v1/orders/pay`,
+      pixStatus: `${baseUrl}/wp-json/paypal-store-api/v1/pix/{order_id}`,
+    },
+  };
+
+  return [
+    {
+      id: "cielo_pix",
+      title: "Pix",
+      description: "Pay instantly with your bank app. 5% off.",
+      config: { kind: "pix", method: "pix", environment: "sandbox", async_confirmation: true, payment_data: paymentData },
+    },
+    { id: "cielo_credit", title: "Credit card", description: "Up to 10 installments.", config: card("credit") },
+    { id: "cielo_debit", title: "Debit card", description: "Authenticated by your bank.", config: card("debit") },
+    {
+      id: "paypal_store_api",
+      title: "PayPal",
+      description: "Pay with your PayPal account.",
+      config: { kind: "wallet", flow: "wallet", ...paypal },
+    },
+    {
+      id: "paypal_store_api_pix",
+      title: "Pix through PayPal",
+      description: "Pay with Pix, confirmed by PayPal.",
+      config: { kind: "pix", flow: "pix", async_confirmation: true, ...paypal },
+    },
+    {
+      id: "bacs",
+      title: "Bank transfer",
+      description: "We confirm the order after receiving the transfer.",
+      config: { kind: "offline" },
+    },
+  ];
+}
