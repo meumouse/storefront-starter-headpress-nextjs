@@ -37,9 +37,9 @@ mock-server       A fake WordPress for demos and development. Never imported by 
 ```
 
 Import direction: `app` → `features` → `integrations` → `lib`. `components/ui` imports only `lib`.
-A feature does not import from another feature's internals, only from its `index.ts` when it has
-one. The payment registry (`src/features/checkout/payments/registry.ts`) is the one place that names
-the gateways.
+Features may use each other's components, without cycles. Integrations may import the payment types
+of `src/features/checkout/payments/types.ts` and nothing else from `features`. The payment registry
+(`src/features/checkout/payments/registry.ts`) is the one place that names the gateways.
 
 ## Conventions
 

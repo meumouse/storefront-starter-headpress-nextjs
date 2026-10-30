@@ -106,7 +106,7 @@ Tooling and project rules.
 - One-page checkout: contact, Brazilian address with CEP lookup, shipping, payment, order summary.
 - A `PaymentProvider` registry, so a gateway is one folder and one registry line.
 - Cielo: Silent Order Post tokenization (the card never reaches WordPress), 3DS 2.0, credit and
-  debit, installments, Pix with polling and renewal.
+  debit, installments, Pix with polling.
 - PayPal: wallet and card buttons from the PayPal JS SDK, and Pix.
 - Order received page with Pix instructions, status polling and purchase tracking.
 
@@ -142,6 +142,7 @@ in a browser against the mock server.
 Backlog for a project built on this starter. None of it blocks a first release.
 
 - Passwordless sign-in (`useOtpFlow`), Google sign-in, saved payment methods.
+- Renewing an expired Cielo Pix (`actions.renew`), and retrying a failed payment.
 - Split payments (`useSplitBuilder`) and the `order_pay` payment link route.
 - Review form (`useReviewForm`) and `product_review` route.
 - Banners module, order tracking page.
