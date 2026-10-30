@@ -34,7 +34,7 @@ const DEMO_CUSTOMER = { login: "demo@example.com", password: "demo-password" };
 /** A fake Pix code in the EMV format, so QR rendering works. */
 const PIX_CODE = "00020126580014br.gov.bcb.pix0136mock-0000-0000-0000-000000000000520400005303986540510.005802BR5909KESTREL6009SAO PAULO62070503***6304ABCD";
 /** Seconds until a demo Pix counts as paid. */
-const PIX_PAID_AFTER = 20;
+const PIX_PAID_AFTER = 45;
 
 const orders = new Map();
 const accessTokens = new Set();
@@ -446,8 +446,27 @@ export function createRoutes({ baseUrl }) {
         extensions: {},
       });
     },
-    "GET /wp-json/headpress/v1/store/orders/:id/analytics": (_request, { id }) =>
-      orders.has(Number(id)) ? json({ order_id: Number(id), paid: false }) : wpError(404, "headpress_not_found", "Not found."),
+    "GET /wp-json/headpress/v1/store/orders/:id/analytics": (_request, { id }) => {
+      const order = orders.get(Number(id));
+      if (!order) return wpError(404, "headpress_not_found", "Not found.");
+      return json({
+        order_id: order.id,
+        transaction_id: String(order.id),
+        event_id: `purchase_${order.id}`,
+        currency: "BRL",
+        value: order.total / 100,
+        tax: 0,
+        shipping: order.shipping / 100,
+        coupon: "",
+        payment_method: order.paymentMethod,
+        items: order.items.map((item) => ({
+          item_id: String(item.id),
+          item_name: item.name,
+          price: item.total / item.quantity / 100,
+          quantity: item.quantity,
+        })),
+      });
+    },
 
     // ----- Cielo -----
     "POST /wp-json/wc-cielo/v1/store/sop/access-token": () =>
@@ -655,7 +674,7 @@ export function createRoutes({ baseUrl }) {
       settlePix(order);
       return json(orderDetail(order));
     }),
-    "GET /wp-json/headpress/v1/store/customers/me/addresses": requireAuth(() => json(addresses)),
+    "GET /wp-json/headpress/v1/store/customers/me/addresses": requireAuth(() => json({ addresses })),
     "POST /wp-json/headpress/v1/store/customers/me/addresses": requireAuth(async (request) => {
       const address = {
         ...addresses[0],
@@ -667,14 +686,14 @@ export function createRoutes({ baseUrl }) {
       addresses = [...addresses, address];
       return json({ address, addresses }, { status: 201 });
     }),
-    "PUT /wp-json/headpress/v1/store/customers/me/addresses/:id": requireAuth(async (request, { id }) => {
+    "PATCH /wp-json/headpress/v1/store/customers/me/addresses/:id": requireAuth(async (request, { id }) => {
       const changes = await request.json();
       addresses = addresses.map((address) => (address.id === id ? { ...address, ...changes } : address));
       return json({ address: addresses.find((address) => address.id === id), addresses });
     }),
     "DELETE /wp-json/headpress/v1/store/customers/me/addresses/:id": requireAuth((_request, { id }) => {
       addresses = addresses.filter((address) => address.id !== id);
-      return json(addresses);
+      return json({ addresses });
     }),
     "GET /wp-json/headpress/v1/store/customers/me/wishlist": requireAuth(() => json(wishlistBody(baseUrl))),
     "POST /wp-json/headpress/v1/store/customers/me/wishlist": requireAuth(async (request) => {

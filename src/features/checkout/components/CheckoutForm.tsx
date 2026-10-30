@@ -1,6 +1,7 @@
 "use client";
 
 import { isHeadpressError, type PaymentMethod } from "@meumouse.com/headpress";
+import { cartEventParams } from "@meumouse.com/headpress/analytics";
 import { isValidCep } from "@meumouse.com/headpress/br";
 import {
   useAddressForm,
@@ -9,6 +10,7 @@ import {
   useCustomer,
   useFormatError,
   useHeadpress,
+  useStoreConfig,
 } from "@meumouse.com/headpress/react";
 import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
@@ -17,11 +19,14 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 
 import { Button } from "@/components/ui/button";
 import { Alert, EmptyState, Skeleton } from "@/components/ui/feedback";
-import { Field, Input, Textarea } from "@/components/ui/field";
+import { ChoiceLabel, Field, Input, Textarea } from "@/components/ui/field";
 import { Card } from "@/components/ui/layout";
 import { paths } from "@/config/routes";
+import { checkoutTrackingFields, getAnalytics } from "@/features/analytics/analytics";
 import { ShippingOptions } from "@/features/cart/components/ShippingOptions";
 import { t } from "@/i18n";
+import { RecoveryCouponBanner } from "@/integrations/sellback/RecoveryCouponBanner";
+import { useContactCapture } from "@/integrations/sellback/useContactCapture";
 
 import { isValidEmail, toPayer, toStoreAddress, type ContactValues } from "../lib/address";
 import { rememberPlacedOrder } from "../lib/placed-order";
@@ -50,15 +55,34 @@ export function CheckoutForm() {
   const [{ cart, status }, cartActions] = useCart({ load: "always" });
   const [address, addressActions] = useAddressForm();
   const brazilianFields = Boolean(useCapability("checkout_fields"));
+  const config = useStoreConfig();
 
   const [contact, setContact] = useState<ContactValues>({ email: "", phone: "" });
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [contactErrors, setContactErrors] = useState<{ email?: string }>({});
   const [note, setNote] = useState("");
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [placing, setPlacing] = useState(false);
+  // The order exists and the cart is now empty: the empty state must not flash on the way out.
+  const [leaving, setLeaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [shippingError, setShippingError] = useState(false);
   const paymentHandle = useRef<PaymentFormHandle | null>(null);
+
+  useContactCapture({
+    email: contact.email.trim(),
+    phone: contact.phone,
+    firstName: address.values.first_name ?? "",
+    optedIn: marketingOptIn,
+  });
+
+  // Once per visit to the checkout, when the cart is known.
+  const checkoutStarted = useRef(false);
+  useEffect(() => {
+    if (!cart || cart.items.length === 0 || checkoutStarted.current) return;
+    checkoutStarted.current = true;
+    getAnalytics()?.tracker.track("begin_checkout", cartEventParams(cart));
+  }, [cart]);
 
   // A signed-in customer starts from their account details.
   const prefilled = useRef(false);
@@ -124,6 +148,7 @@ export function CheckoutForm() {
           paymentData,
           customerNote: note.trim() || undefined,
           fields: addressActions.checkoutFields({ cellphone: contact.phone }),
+          ...checkoutTrackingFields(config),
         });
 
         if (placed.paymentStatus === "failure" || placed.paymentStatus === "error") {
@@ -148,6 +173,7 @@ export function CheckoutForm() {
           return true;
         }
 
+        setLeaving(true);
         router.push(paths.orderReceived(placed.orderId, placed.orderKey));
         void cartActions.load();
         return true;
@@ -158,7 +184,7 @@ export function CheckoutForm() {
         setPlacing(false);
       }
     },
-    [method, address.values, contact, brazilianFields, hp, note, addressActions, router, cartActions, formatError],
+    [method, address.values, contact, brazilianFields, hp, note, addressActions, router, cartActions, formatError, config],
   );
 
   const provider = method ? providerFor(method) : null;
@@ -179,7 +205,7 @@ export function CheckoutForm() {
     }
   };
 
-  if (status === "loading" && !cart) return <Skeleton className="h-96" />;
+  if (leaving || (status === "loading" && !cart)) return <Skeleton className="h-96" />;
 
   if (!cart || cart.items.length === 0) {
     return (
@@ -218,6 +244,13 @@ export function CheckoutForm() {
               />
             </Field>
           </div>
+          <ChoiceLabel
+            type="checkbox"
+            checked={marketingOptIn}
+            onChange={(event) => setMarketingOptIn(event.target.checked)}
+          >
+            {t.checkout.marketingOptIn}
+          </ChoiceLabel>
         </Section>
 
         <Section title={t.checkout.addressTitle}>
@@ -257,6 +290,7 @@ export function CheckoutForm() {
 
       {/* Outside the form: the summary has the coupon form, and forms cannot nest. */}
       <div className="flex flex-col gap-4 lg:sticky lg:top-6">
+        <RecoveryCouponBanner cart={cart} />
         <OrderSummary cart={cart} />
         {formError ? <Alert tone="danger">{formError}</Alert> : null}
         {!provider?.submitsItself ? (

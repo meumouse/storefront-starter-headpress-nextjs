@@ -1,13 +1,15 @@
 "use client";
 
 import type { Product } from "@meumouse.com/headpress";
+import { productEventParams } from "@meumouse.com/headpress/analytics";
 import { useCart, useFormatError } from "@meumouse.com/headpress/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Alert, Badge } from "@/components/ui/feedback";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { WishlistButton } from "@/features/account/components/Wishlist";
+import { getAnalytics } from "@/features/analytics/analytics";
 import { useCartDrawer } from "@/features/cart/components/CartDrawerProvider";
 import { t } from "@/i18n";
 import { InstallmentsTable } from "@/integrations/installments/InstallmentsTable";
@@ -66,8 +68,19 @@ export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
         ? attributes.map((attribute) => ({ attribute: attribute.name, value: selection[attribute.name] ?? "" }))
         : undefined,
     });
-    if (cart) openCart(true);
+    if (!cart) return;
+    openCart(true);
+    getAnalytics()?.tracker.track("add_to_cart", productEventParams(current as Product, { quantity }));
   };
+
+  // Once per product, whichever variation is chosen after.
+  const productId = product.id;
+  const viewed = useRef<number | null>(null);
+  useEffect(() => {
+    if (viewed.current === productId) return;
+    viewed.current = productId;
+    getAnalytics()?.tracker.track("view_item", productEventParams(product as Product));
+  }, [productId, product]);
 
   const buttonLabel = needsSelection
     ? t.catalog.selectOptions

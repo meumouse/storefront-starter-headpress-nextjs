@@ -10,6 +10,7 @@ import { catalog } from "./catalog";
 import { checkout } from "./checkout";
 import { common } from "./common";
 import { LOCALES, type Locale } from "./define";
+import { recovery } from "./recovery";
 
 export type { Locale };
 
@@ -23,6 +24,7 @@ export const t = {
   cart: cart[storeLocale],
   checkout: checkout[storeLocale],
   account: account[storeLocale],
+  recovery: recovery[storeLocale],
 };
 
 /** The SDK's dictionary for API errors, in the same language. */

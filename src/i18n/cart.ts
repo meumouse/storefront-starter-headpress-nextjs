@@ -36,7 +36,6 @@ export const cart = defineMessages(
     installmentRow: (count: number, amount: string) => `${count}x of ${amount}`,
     installmentTotal: (amount: string) => `total ${amount}`,
     interestFree: "interest-free",
-    withInterest: "with interest",
   },
   {
     "pt-BR": {
@@ -74,7 +73,6 @@ export const cart = defineMessages(
       installmentRow: (count: number, amount: string) => `${count}x de ${amount}`,
       installmentTotal: (amount: string) => `total ${amount}`,
       interestFree: "sem juros",
-      withInterest: "com juros",
     },
     es: {
       title: "Tu carrito",
@@ -111,7 +109,6 @@ export const cart = defineMessages(
       installmentRow: (count: number, amount: string) => `${count}x de ${amount}`,
       installmentTotal: (amount: string) => `total ${amount}`,
       interestFree: "sin intereses",
-      withInterest: "con intereses",
     },
   },
 );

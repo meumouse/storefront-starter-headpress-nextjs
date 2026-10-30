@@ -1,15 +1,17 @@
 "use client";
 
+import { trackPurchase } from "@meumouse.com/headpress/analytics";
 import { useHeadpress } from "@meumouse.com/headpress/react";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
 import { Card } from "@/components/ui/layout";
 import { paths } from "@/config/routes";
+import { getAnalytics } from "@/features/analytics/analytics";
 import { t } from "@/i18n";
 
 import { readPlacedOrder, type PlacedOrderRecord } from "../lib/placed-order";
@@ -53,6 +55,13 @@ export function OrderReceived({ orderId, orderKey }: { orderId: number; orderKey
 
   const current = status.data ?? null;
   const showInstructions = record?.pending && current !== "paid" && current !== "expired";
+
+  // `trackPurchase` keeps it to once per order per browser; the server reports the sale regardless.
+  const paid = current === "paid" || (record !== null && !pollStatus && !record.pending);
+  useEffect(() => {
+    const analytics = getAnalytics();
+    if (paid && analytics) void trackPurchase(hp, analytics.tracker, { orderId, key: orderKey });
+  }, [paid, hp, orderId, orderKey]);
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-5">

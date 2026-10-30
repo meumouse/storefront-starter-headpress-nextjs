@@ -9,6 +9,7 @@ import { EmptyState, Skeleton } from "@/components/ui/feedback";
 import { Card } from "@/components/ui/layout";
 import { paths } from "@/config/routes";
 import { t } from "@/i18n";
+import { RecoveryCouponBanner } from "@/integrations/sellback/RecoveryCouponBanner";
 
 import { CartLines } from "./CartLines";
 import { CartPostcodeForm } from "./CartPostcodeForm";
@@ -40,6 +41,7 @@ export function CartPageContent() {
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[1fr_24rem]">
       <div className="flex flex-col gap-4">
+        <RecoveryCouponBanner cart={cart} />
         {cart.freeShipping ? <FreeShippingProgress progress={cart.freeShipping} /> : null}
         <CartLines />
       </div>
