@@ -6,6 +6,7 @@ import { publicEnv } from "@/lib/env";
 
 import { cart } from "./cart";
 import { catalog } from "./catalog";
+import { checkout } from "./checkout";
 import { common } from "./common";
 import { LOCALES, type Locale } from "./define";
 
@@ -19,6 +20,7 @@ export const t = {
   common: common[storeLocale],
   catalog: catalog[storeLocale],
   cart: cart[storeLocale],
+  checkout: checkout[storeLocale],
 };
 
 /** The SDK's dictionary for API errors, in the same language. */

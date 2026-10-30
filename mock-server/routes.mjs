@@ -218,6 +218,19 @@ export function createRoutes({ baseUrl }) {
          };`,
         { headers: { "Content-Type": "text/javascript" } },
       ),
+    "GET /mock/mpi.js": () =>
+      new Response(
+        `(function () {
+           var config = window.bpmpi_config();
+           window.bpmpi_authenticate = function () {
+             setTimeout(function () {
+               config.onSuccess({ Cavv: "mock", Xid: "mock", Eci: "05", Version: "2", ReferenceId: "mock" });
+             }, 400);
+           };
+           config.onReady();
+         })();`,
+        { headers: { "Content-Type": "text/javascript" } },
+      ),
     "GET /mock/qr.svg": () =>
       new Response(placeholderImage("qr", 0), { headers: { "Content-Type": "image/svg+xml" } }),
 
@@ -443,6 +456,14 @@ export function createRoutes({ baseUrl }) {
         expires_at: new Date(Date.now() + 20 * 60_000).toISOString(),
         environment: "sandbox",
         script_url: `${baseUrl}/mock/silentorderpost.js`,
+      }),
+    "POST /wp-json/wc-cielo/v1/store/3ds/access-token": () =>
+      json({
+        access_token: "mock-3ds-token",
+        expires_at: new Date(Date.now() + 20 * 60_000).toISOString(),
+        environment: "SDB",
+        script_url: `${baseUrl}/mock/mpi.js`,
+        device_ip: "127.0.0.1",
       }),
     "GET /wp-json/wc-cielo/v1/store/installments": (request) => {
       const params = new URL(request.url).searchParams;
