@@ -56,8 +56,7 @@ the gateways.
 ## Talking to WordPress
 
 - Every call goes through the SDK: `hp.catalog`, `hp.cart`, `hp.checkout`, or `hp.request()` with
-  `api: "<namespace>"` for plugin routes. No hand-built `fetch`, with one documented exception: the
-  shipping quote uses a CORS-simple request (see `src/integrations/shipping/quote.ts`).
+  `api: "<namespace>"` for plugin routes. No hand-built `fetch`.
 - Failures are `HeadpressError`. Show them with `hp.formatError(error)`.
 - The store must open with WordPress down. Server reads go through `safeRead()`
   (`src/lib/headpress/safe-read.ts`): "does not exist" is a 404, "did not answer" is the

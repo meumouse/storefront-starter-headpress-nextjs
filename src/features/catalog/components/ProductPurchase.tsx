@@ -7,7 +7,10 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Badge } from "@/components/ui/feedback";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import { useCartDrawer } from "@/features/cart/components/CartDrawerProvider";
 import { t } from "@/i18n";
+import { InstallmentsTable } from "@/integrations/installments/InstallmentsTable";
+import { ProductShippingCalculator } from "@/integrations/shipping/ProductShippingCalculator";
 import { cn } from "@/lib/utils";
 
 import {
@@ -30,10 +33,10 @@ interface ProductPurchaseProps {
 export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
   const [{ pending, error }, { addItem, clearError }] = useCart();
   const formatError = useFormatError();
+  const { setOpen: openCart } = useCartDrawer();
 
   const [selection, setSelection] = useState<VariationSelection>(() => defaultSelection(product));
   const [quantity, setQuantity] = useState(product.quantity.min);
-  const [added, setAdded] = useState(false);
 
   const attributes = selectableAttributes(product);
   const isVariable = attributes.length > 0;
@@ -50,13 +53,11 @@ export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
   const canBuy = !needsSelection && current.stock.purchasable && current.stock.inStock;
 
   const select = (name: string, slug: string) => {
-    setAdded(false);
     clearError();
     setSelection((previous) => ({ ...previous, [name]: slug }));
   };
 
   const add = async () => {
-    setAdded(false);
     const cart = await addItem({
       id: variationId ?? product.id,
       quantity,
@@ -64,7 +65,7 @@ export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
         ? attributes.map((attribute) => ({ attribute: attribute.name, value: selection[attribute.name] ?? "" }))
         : undefined,
     });
-    setAdded(cart !== null);
+    if (cart) openCart(true);
   };
 
   const buttonLabel = needsSelection
@@ -142,7 +143,9 @@ export function ProductPurchase({ product, variations }: ProductPurchaseProps) {
       </div>
 
       {error ? <Alert tone="danger">{formatError(error, "cart")}</Alert> : null}
-      {added ? <Alert tone="success">{t.catalog.addedToCart}</Alert> : null}
+
+      <InstallmentsTable product={current} />
+      <ProductShippingCalculator productId={product.id} variationId={variationId ?? undefined} quantity={quantity} />
     </div>
   );
 }

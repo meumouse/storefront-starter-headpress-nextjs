@@ -4,6 +4,7 @@ import { ptBR as sdkPtBr } from "@meumouse.com/headpress/messages/pt-BR";
 
 import { publicEnv } from "@/lib/env";
 
+import { cart } from "./cart";
 import { catalog } from "./catalog";
 import { common } from "./common";
 import { LOCALES, type Locale } from "./define";
@@ -17,6 +18,7 @@ export const storeLocale: Locale = LOCALES.find((entry) => entry === publicEnv.l
 export const t = {
   common: common[storeLocale],
   catalog: catalog[storeLocale],
+  cart: cart[storeLocale],
 };
 
 /** The SDK's dictionary for API errors, in the same language. */

@@ -1,11 +1,12 @@
 import type { Menu } from "@meumouse.com/headpress";
-import { ShoppingBag, User } from "lucide-react";
+import { User } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/layout";
 import { paths } from "@/config/routes";
 import { siteConfig } from "@/config/site";
+import { CartButton } from "@/features/cart/components/CartButton";
 import { SearchDialog } from "@/features/search/components/SearchDialog";
 import { t } from "@/i18n";
 import { readOr } from "@/lib/headpress/safe-read";
@@ -54,11 +55,7 @@ export async function Header({ storeName }: { storeName: string }) {
               <User />
             </Link>
           </Button>
-          <Button asChild variant="ghost" size="icon" aria-label={t.common.footerShop}>
-            <Link href={paths.cart}>
-              <ShoppingBag />
-            </Link>
-          </Button>
+          <CartButton />
         </div>
       </Container>
     </header>
