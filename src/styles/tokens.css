@@ -1,0 +1,55 @@
+/*
+ * Design tokens: the single source of the storefront's look.
+ *
+ * Rebrand by editing this file. `globals.css` maps these variables to Tailwind utilities
+ * (`bg-canvas`, `text-ink`, `rounded-control`...), so components never name a raw color.
+ */
+:root {
+  /* Surfaces */
+  --ds-canvas: oklch(0.985 0.003 90);
+  --ds-surface: oklch(1 0 0);
+  --ds-sunken: oklch(0.955 0.005 90);
+  --ds-overlay: oklch(0.2 0.02 265 / 0.45);
+
+  /* Text */
+  --ds-ink: oklch(0.23 0.02 265);
+  --ds-ink-muted: oklch(0.47 0.015 265);
+  --ds-ink-subtle: oklch(0.6 0.012 265);
+  --ds-ink-inverse: oklch(0.985 0.003 90);
+
+  /* Lines */
+  --ds-line: oklch(0.91 0.006 90);
+  --ds-line-strong: oklch(0.8 0.01 90);
+
+  /* Brand */
+  --ds-brand: oklch(0.44 0.17 262);
+  --ds-brand-hover: oklch(0.38 0.17 262);
+  --ds-brand-soft: oklch(0.94 0.03 262);
+  --ds-on-brand: oklch(0.99 0 0);
+
+  /* Feedback */
+  --ds-success: oklch(0.5 0.12 155);
+  --ds-success-soft: oklch(0.95 0.04 155);
+  --ds-warning: oklch(0.58 0.13 75);
+  --ds-warning-soft: oklch(0.96 0.05 90);
+  --ds-danger: oklch(0.54 0.19 27);
+  --ds-danger-soft: oklch(0.95 0.03 27);
+  --ds-sale: oklch(0.56 0.2 30);
+
+  /* Shape */
+  --ds-radius-control: 0.625rem;
+  --ds-radius-card: 1rem;
+  --ds-radius-sheet: 1.25rem;
+
+  /* Elevation */
+  --ds-shadow-card: 0 1px 2px oklch(0.2 0.02 265 / 0.05), 0 8px 24px -12px oklch(0.2 0.02 265 / 0.12);
+  --ds-shadow-float: 0 16px 48px -16px oklch(0.2 0.02 265 / 0.28);
+
+  /* Layout */
+  --ds-content-width: 80rem;
+  --ds-header-height: 4.5rem;
+
+  /* Motion */
+  --ds-duration: 160ms;
+  --ds-ease: cubic-bezier(0.2, 0, 0, 1);
+}
