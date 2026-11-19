@@ -1,6 +1,7 @@
 "use client";
 
-import { useCustomer, useFormatError, useHeadpress } from "@meumouse.com/headpress/react";
+import type { Customer } from "@meumouse.com/headpress";
+import { useCapability, useCustomer, useFormatError, useHeadpress } from "@meumouse.com/headpress/react";
 import { useMutation } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
@@ -9,6 +10,8 @@ import { Alert } from "@/components/ui/feedback";
 import { Field, Input } from "@/components/ui/field";
 import { Card } from "@/components/ui/layout";
 import { t } from "@/i18n";
+
+import { GoogleSignInButton } from "./GoogleSignInButton";
 
 function DetailsForm({
   firstName,
@@ -111,6 +114,52 @@ function PasswordForm() {
   );
 }
 
+/** Link a Google account to sign in with it, or unlink it. Hidden while the store has no Google sign-in. */
+function GoogleAccountCard({ google, onChanged }: { google: Customer["google"]; onChanged: () => Promise<void> }) {
+  const hp = useHeadpress();
+  const formatError = useFormatError();
+  const enabled = Boolean(useCapability("google_sign_in")?.client_id);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const unlink = useMutation({
+    mutationFn: async () => {
+      await hp.customer.google.unlink();
+      await onChanged();
+    },
+    onSuccess: () => setMessage(t.signIn.googleUnlinked),
+  });
+
+  if (!enabled) return null;
+
+  const link = async (credential: string) => {
+    await hp.customer.google.link(credential);
+    await onChanged();
+    setMessage(t.signIn.googleLinkedNow);
+  };
+
+  return (
+    <Card className="flex flex-col gap-4">
+      <div>
+        <h2 className="font-semibold">{t.signIn.googleTitle}</h2>
+        <p className="text-sm text-ink-muted">
+          {google?.linked ? t.signIn.googleLinked(google.email ?? "") : t.signIn.googleNotLinked}
+        </p>
+      </div>
+      {google?.linked ? (
+        <Button variant="secondary" className="self-start" loading={unlink.isPending} onClick={() => unlink.mutate()}>
+          {t.signIn.googleUnlink}
+        </Button>
+      ) : (
+        <div className="max-w-xs">
+          <GoogleSignInButton text="continue_with" onCredential={link} />
+        </div>
+      )}
+      {unlink.error ? <Alert tone="danger">{formatError(unlink.error)}</Alert> : null}
+      {message ? <Alert tone="success">{message}</Alert> : null}
+    </Card>
+  );
+}
+
 export function ProfileForm() {
   const { customer, reload } = useCustomer();
   if (!customer) return null;
@@ -119,6 +168,7 @@ export function ProfileForm() {
     <div className="flex flex-col gap-5">
       <h1 className="text-2xl font-semibold">{t.account.profileTitle}</h1>
       <DetailsForm firstName={customer.first_name} lastName={customer.last_name} onSaved={reload} />
+      <GoogleAccountCard google={customer.google} onChanged={reload} />
       <PasswordForm />
     </div>
   );

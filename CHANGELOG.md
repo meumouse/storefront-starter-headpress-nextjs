@@ -3,6 +3,29 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.2.0 - 2026-11-19
+
+### Added
+
+- **Reviews now show customers' photos and videos, filter by stars, sort, take helpful votes, and
+  can be written with uploads from the product page.**
+- **The product page now offers what is bought together, added in one click, and related products
+  from the recommendations module; the cart suggests products and the home page lists best sellers.**
+- **Customers can now sign in with Google, or with a one-time code by email or WhatsApp, falling back
+  to email when WhatsApp is down, and link Google from their profile.**
+- **Order pages now show the delivery: progress, the expected date and each parcel's tracking code.**
+- **The storefront now renders and sends the store's emails (`/api/emails/send`), in its own look,
+  with order templates for add-ons and a preview route in development.**
+- **The checkout now lets a shopper pay one order in parts, such as Pix and card, with each part's
+  discount from the server, and the order pages list each part's state.**
+- **The `product_review` route (`/product/{slug}/review`) opens the review form.**
+- **The mock WordPress now answers the reviews, recommendations, passwordless, Google, tracking and
+  split payment routes.**
+
+### Changed
+
+- **Payment forms now charge the amount they are given, so a gateway can pay one part of a split.**
+
 ## 0.1.1 - 2026-10-30
 
 ### Added

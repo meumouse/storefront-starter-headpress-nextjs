@@ -29,11 +29,11 @@ later phases only depend on earlier ones.
 
 ## Non-goals
 
-These are out of the first version on purpose. See [Phase 9](#phase-9--after-the-starter).
+These are out of the first version on purpose. See [Phase 10](#phase-10--after-the-starter).
 
 - Store-specific features of the reference project (ring personalization, graduation courses,
   Instagram and Google review feeds, the Redis catalog cache).
-- Split payments and payment links (the SDK supports them; the UI is a project decision).
+- Payment links and paying an order's balance (the SDK supports them; the UI is a project decision).
 
 ## Architecture decisions
 
@@ -137,15 +137,29 @@ Tooling and project rules.
 **Exit check:** `npm run verify` (lint, types, tests, build) passes, and the main flows work
 in a browser against the mock server.
 
-### Phase 9 — After the starter
+### Phase 9 — More of Headpress
+
+- Reviews with photos and videos, helpful votes, the review form and the `product_review` route.
+- Recommendations: bought together and related products on the product page, cart suggestions, best
+  sellers on the home page.
+- Sign in with Google and with one-time codes by email or WhatsApp, with the fallback channel.
+- Delivery tracking on the order-received page and in the account (HubGo through Headpress).
+- Transactional emails rendered by the storefront (`/api/emails/send`), see `docs/EMAILS.md`.
+- Split payments at checkout (Pix and card, or any two methods), with each part's state on the order
+  pages.
+
+**Exit check:** each flow runs against the mock server: a review with a photo, adding what is bought
+together, a code sign-in, a split order with a card part and a Pix part, and its tracking.
+
+### Phase 10 — After the starter
 
 Backlog for a project built on this starter. None of it blocks a first release.
 
-- Passwordless sign-in (`useOtpFlow`), Google sign-in, saved payment methods.
+- Saved payment methods, a verified login phone in the profile.
 - Renewing an expired Cielo Pix (`actions.renew`), and retrying a failed payment.
-- Split payments (`useSplitBuilder`) and the `order_pay` payment link route.
-- Review form (`useReviewForm`) and `product_review` route.
-- Banners module, order tracking page.
+- Paying an order's balance (`hp.payments.payBalance`) and the `order_pay` payment link route.
+- Editing and deleting one's own reviews, pending review requests in the account.
+- Banners module.
 - Redis server cache with `swr()` and `redisCache()` from the SDK.
 - End-to-end tests with Playwright against the mock server, in CI.
 - Validation on one WordPress with all six plugins together (see the checklist in

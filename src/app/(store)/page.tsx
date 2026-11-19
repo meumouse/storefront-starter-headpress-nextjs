@@ -7,6 +7,7 @@ import { Container } from "@/components/ui/layout";
 import { paths } from "@/config/routes";
 import { ProductGrid } from "@/features/catalog/components/ProductCard";
 import { ProductImage } from "@/features/catalog/components/ProductImage";
+import { homeBestSellers } from "@/features/recommendations/lib/recommendations";
 import { t } from "@/i18n";
 import { readOr, safeRead } from "@/lib/headpress/safe-read";
 
@@ -25,10 +26,11 @@ function SectionHeading({ title, href }: { title: string; href?: string }) {
 }
 
 export default async function HomePage() {
-  const [featured, latest, categories] = await Promise.all([
+  const [featured, latest, categories, bestSellers] = await Promise.all([
     safeRead((hp) => hp.catalog.list({ featured: true, perPage: 4 })),
     readOr(null, (hp) => hp.catalog.list({ orderby: "date", order: "desc", perPage: 4 })),
     readOr([], (hp) => hp.catalog.categories({ hideEmpty: true })),
+    readOr([], (hp) => homeBestSellers(hp, 4)),
   ]);
 
   return (
@@ -80,6 +82,13 @@ export default async function HomePage() {
             <section className="flex flex-col gap-5">
               <SectionHeading title={t.catalog.featuredTitle} href={paths.shop} />
               <ProductGrid products={featured.data.items} />
+            </section>
+          ) : null}
+
+          {bestSellers.length > 0 ? (
+            <section className="flex flex-col gap-5">
+              <SectionHeading title={t.recommendations.bestSellersTitle} href={`${paths.shop}?sort=popular`} />
+              <ProductGrid products={bestSellers} />
             </section>
           ) : null}
 

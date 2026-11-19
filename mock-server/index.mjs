@@ -21,7 +21,7 @@ const routes = createRoutes({ baseUrl });
 const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
-    "Authorization, Content-Type, Cart-Token, Nonce, If-None-Match, X-Headpress-Key, X-Headpress-Captcha, X-Headpress-Client-IP, X-Headpress-Secret",
+    "Authorization, Content-Type, Cart-Token, Nonce, If-None-Match, X-Headpress-Key, X-Headpress-Captcha, X-Headpress-Client-IP, X-Headpress-Secret, X-Headpress-Voter",
   "Access-Control-Expose-Headers": "Cart-Token, X-WP-Total, X-WP-TotalPages, ETag, Retry-After",
   "Access-Control-Max-Age": "600",
 };

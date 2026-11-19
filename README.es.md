@@ -28,6 +28,11 @@ eligió.
 | CPF y fecha de nacimiento | `529.982.247-25` y cualquier fecha pasada |
 | Tarjeta | `4111 1111 1111 1111`, cualquier fecha futura y cualquier CVV |
 | Pix | Elige Pix: el pedido de demostración se paga tras 45 segundos |
+| Pago dividido | En el checkout, elige **Split payment**: una parte con Pix y el resto con tarjeta |
+| Entrar con código | Código `123456` para `demo@example.com` o `11 99999-8888`; un WhatsApp que termina en `0000` muestra el cambio a correo |
+| Opinión con fotos | Inicia sesión, abre un producto y opina con una foto o un video |
+| Seguimiento | Abre un pedido pagado: el código aparece un minuto después del pago |
+| Correos | Abre `/api/emails/preview` |
 | Recuperación de carrito | Abre `/cart/recover/demo-token` |
 | Preferencias de mensajes | Abre `/unsubscribe/demo-token` |
 
@@ -37,8 +42,15 @@ eligió.
   en la URL, páginas de producto con variaciones, reseñas y JSON-LD.
 - **Carrito:** panel lateral y página, cupones, progreso de envío gratis, envío por código postal.
 - **Checkout:** una sola página, dirección brasileña con búsqueda de CEP, envío, pago y confirmación.
-- **Cuentas:** inicio de sesión con refresh token en cookie httpOnly, pedidos, direcciones, favoritos
-  y perfil.
+- **Cuentas:** inicio de sesión con contraseña, código por correo o WhatsApp, o Google, con refresh
+  token en cookie httpOnly; pedidos con seguimiento de la entrega, direcciones, favoritos y perfil.
+- **Opiniones:** resumen con filtro por estrellas, fotos y videos de clientes, votos de "útil" y
+  formulario con subida de archivos.
+- **Recomendaciones:** comprados juntos y productos relacionados, sugerencias en el carrito, más
+  vendidos.
+- **Pago dividido:** un pedido pagado en partes, como Pix y tarjeta, con montos del servidor.
+- **Correos:** cada correo de WordPress y WooCommerce con la identidad de la tienda, enviado por la
+  tienda.
 - **Contenido:** blog y páginas publicados desde WordPress.
 - **SEO y consentimiento:** metaetiquetas y redirecciones de WordPress, sitemap, aviso de cookies y
   analítica.
@@ -105,6 +117,7 @@ La documentación técnica está en inglés.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Estructura, caché, sesiones y pagos |
 | [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Cada plugin, y cómo agregar o quitar uno |
 | [docs/STORE_API.md](docs/STORE_API.md) | Compatibilidad con la Store API y brechas conocidas |
+| [docs/EMAILS.md](docs/EMAILS.md) | Correos transaccionales: plantillas, proveedores y add-ons |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Tokens, componentes e identidad visual |
 | [docs/WORDPRESS_SETUP.md](docs/WORDPRESS_SETUP.md) | Conexión y despliegue |
 | [AGENTS.md](AGENTS.md) | Convenciones para desarrolladores y agentes de código |

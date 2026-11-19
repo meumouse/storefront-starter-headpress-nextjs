@@ -5,10 +5,22 @@
  * the server offers, renders its `Form`, and on submit asks that form for the `payment_data`.
  * Gateway knowledge stays in `src/integrations/<gateway>`.
  */
-import type { Cart, HeadpressClient, PaymentMethod, PlacedOrder } from "@meumouse.com/headpress";
+import type { Cart, HeadpressClient, Money, PaymentMethod, PlacedOrder, SplitLeg } from "@meumouse.com/headpress";
 import type { ComponentType } from "react";
 
 export type PaymentData = readonly { key: string; value: string }[];
+
+/** A split checkout: the order goes to the split gateway, each part with its own `payment_data`. */
+export interface SplitPlan {
+  splitLegs: readonly SplitLeg[];
+}
+
+/** What a payment form hands the checkout: the gateway's `payment_data`, or the parts of a split. */
+export type PaymentSubmission = PaymentData | SplitPlan;
+
+export function isSplitPlan(submission: PaymentSubmission): submission is SplitPlan {
+  return !Array.isArray(submission);
+}
 
 /** The buyer as the checkout has them, for gateways that ask for it (3DS, card forms). */
 export interface Payer {
@@ -37,19 +49,21 @@ export class PaymentError extends Error {
 
 export interface PaymentFormHandle {
   /** Validate and prepare the payment. Throws `PaymentError`; resolves null when the form shows why. */
-  submit(): Promise<PaymentData | null>;
+  submit(): Promise<PaymentSubmission | null>;
 }
 
 export interface PaymentFormProps {
   method: PaymentMethod;
   cart: Cart;
+  /** What this form charges: the cart total, or one part of a split. */
+  amount: Money;
   guest: boolean;
   /** The buyer, or null after the checkout has highlighted what is missing. */
   getPayer(): Payer | null;
   /** The form's submit step. The checkout calls it when the shopper places the order. */
   register(handle: PaymentFormHandle | null): void;
   /** For providers with their own button (`submitsItself`). Resolves whether the order was placed. */
-  placeOrder(paymentData: PaymentData): Promise<boolean>;
+  placeOrder(submission: PaymentSubmission): Promise<boolean>;
   onError(message: string): void;
 }
 
@@ -73,6 +87,8 @@ export interface PaymentProvider {
   submitsItself?: boolean;
   /** What to show after the order is placed. */
   pendingPayment?(order: PlacedOrder): PendingPayment | null;
+  /** The same, from one payment's `payment_details` (a part of a split order). */
+  pendingFromDetails?(details: Record<string, string>): PendingPayment | null;
   /** Ask the gateway how an async payment is going. */
   pollStatus?(hp: Pick<HeadpressClient, "request">, order: OrderRef): Promise<PaymentStatus>;
 }

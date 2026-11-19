@@ -9,7 +9,9 @@ import Link from "next/link";
 import { Alert, Badge, EmptyState, Skeleton } from "@/components/ui/feedback";
 import { Card, Separator } from "@/components/ui/layout";
 import { paths } from "@/config/routes";
+import { OrderPayments } from "@/features/checkout/components/OrderPayments";
 import { storeLocale, t } from "@/i18n";
+import { OrderTracking } from "@/integrations/shipping/OrderTracking";
 import { formatPrice } from "@/lib/money";
 
 function formatDate(value: string | null): string {
@@ -129,6 +131,8 @@ export function OrderDetails({ orderId }: { orderId: number }) {
           <p className="text-ink-muted">{data.payment_method_title}</p>
         </Card>
       </div>
+      <OrderPayments orderId={data.id} orderKey={data.order_key} />
+      <OrderTracking orderId={data.id} orderKey={data.order_key} />
     </div>
   );
 }

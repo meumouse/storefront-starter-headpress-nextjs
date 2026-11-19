@@ -10,7 +10,13 @@ import { catalog } from "./catalog";
 import { checkout } from "./checkout";
 import { common } from "./common";
 import { LOCALES, type Locale } from "./define";
+import { emails } from "./emails";
+import { recommendations } from "./recommendations";
 import { recovery } from "./recovery";
+import { reviews } from "./reviews";
+import { signIn } from "./sign-in";
+import { split } from "./split";
+import { tracking } from "./tracking";
 
 export type { Locale };
 
@@ -25,6 +31,12 @@ export const t = {
   checkout: checkout[storeLocale],
   account: account[storeLocale],
   recovery: recovery[storeLocale],
+  reviews: reviews[storeLocale],
+  recommendations: recommendations[storeLocale],
+  signIn: signIn[storeLocale],
+  tracking: tracking[storeLocale],
+  split: split[storeLocale],
+  emails: emails[storeLocale],
 };
 
 /** The SDK's dictionary for API errors, in the same language. */

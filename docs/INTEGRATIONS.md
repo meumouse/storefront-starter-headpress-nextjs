@@ -25,6 +25,7 @@ rendering its own storefront markup.
 | --- | --- |
 | Product page | `quoteProductShipping()` tries `envora/v1`, then `hubgo/v1`, then `hp.checkout.shippingQuote()`. A missing route (`rest_no_route`) moves on; any other error is shown. |
 | Cart and checkout | Rates come from the Store API. `rateDelivery()` reads the estimate from `extensions.headpress.shipping`. |
+| Order pages | `OrderTracking` reads `GET /headpress/v1/store/orders/{id}/tracking?key=` (Headpress `shipping` module): the delivery promise and each parcel's code and carrier link, on the order-received page and in the account. |
 
 `modules.shipping.calculator = false` hides the product calculator. List `envora/v1` under
 **Headpress → Storefront → Other REST namespaces**, so the browser can call it.
@@ -96,8 +97,26 @@ no cookies and no referrer.
 5. Have the WordPress plugin publish its public config through
    `Headpress/Store/Payment_Method_Config/{gateway}`, including `kind`.
 
-Add `pendingPayment` when the order needs a follow-up from the shopper, `pollStatus` when the
+Add `pendingPayment` when the order needs a follow-up from the shopper, `pendingFromDetails` to read
+the same from one payment's `payment_details` (a part of a split order), `pollStatus` when the
 gateway can be asked how it went, and `submitsItself` when the gateway draws its own button.
+
+Charge `amount` from `PaymentFormProps`, not the cart total: when the method pays one part of a split
+order, `amount` is what that part costs.
+
+## Split payments
+
+Headpress's `split_payments` module, not a gateway: `src/features/checkout/payments/split.ts` and
+`SplitPaymentForm`. The checkout offers it as one more method when the module publishes
+`checkout_enabled` and at least two of its `methods` have a provider without `submitsItself`.
+
+- The shopper picks a method and an amount for each part; the last part takes the rest.
+- `useSplitBuilder()` checks the plan against the config and asks
+  `POST /store/split-payments/quote` for each part's discount and charge.
+- Each part renders its own method's form, charged the quoted amount (a Cielo card part gets its
+  installments and 3DS for that amount).
+- The order goes to the split gateway with `splitLegs`; the order-received page and the account list
+  each part with its state and the Pix code of the parts still to pay.
 
 ## Removing an integration
 
@@ -106,4 +125,4 @@ gateway can be asked how it went, and `submitsItself` when the gateway draws its
 | Cielo or PayPal | Its folder | The import and line in `registry.ts` |
 | Sellback | Its folder, `app/(store)/cart/recover`, `app/(store)/unsubscribe` | Banner in `CartPageContent` and `CheckoutForm`, capture in `CheckoutForm`, token check in `AnalyticsBridge`, the two routes in `config/routes.ts` |
 | Parcelas Customizadas | Its folder | `ProductPrice`, `ProductPurchase`, `CartTotals` |
-| HubGo / Envora | Its folder | `ProductPurchase`, `ShippingOptions` |
+| HubGo / Envora | Its folder | `ProductPurchase`, `ShippingOptions`, `OrderTracking` in `Orders` and `OrderReceived` |

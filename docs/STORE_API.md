@@ -55,7 +55,6 @@ How the storefront uses the [Store API](https://developer.woocommerce.com/docs/a
 | WooCommerce's Additional Checkout Fields are not rendered | A store requiring one gets the server's message, naming the field | Backlog, through `additional_fields` |
 | `customer_password` and `create_account` are not offered | Guests check out without creating an account | Backlog |
 | Password-protected products | The description comes back empty | Backlog |
-| `cross_sells` are not shown | No suggestions in the cart | Backlog |
 | Retrying a failed order (`POST /checkout/{id}`) | The shopper starts a new order | Backlog |
 
 The official docs do not list a rate-limit or error guide among the pages reviewed. Rate limiting is

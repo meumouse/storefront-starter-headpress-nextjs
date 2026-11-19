@@ -27,6 +27,11 @@ the storefront, with no configuration. If port 3000 is taken, Next.js prints the
 | CPF and date of birth | `529.982.247-25`, any past date |
 | Card | `4111 1111 1111 1111`, any future date, any CVV |
 | Pix | Choose Pix: the demo order counts as paid after 45 seconds |
+| Split payment | At checkout, choose **Split payment**: part Pix, the rest by card |
+| Sign in with a code | Code `123456` for `demo@example.com` or `11 99999-8888`; a WhatsApp number ending in `0000` shows the fallback to email |
+| Review with photos | Sign in, open a product and write a review with a photo or video |
+| Tracking | Open a paid order: a tracking code appears a minute after the payment |
+| Emails | Open `/api/emails/preview` |
 | Cart recovery | Open `/cart/recover/demo-token` |
 | Message preferences | Open `/unsubscribe/demo-token` |
 
@@ -36,7 +41,14 @@ the storefront, with no configuration. If port 3000 is taken, Next.js prints the
   the URL, product pages with variations, reviews and JSON-LD.
 - **Cart:** drawer and page, coupons, free-shipping progress, shipping by postcode.
 - **Checkout:** one page, Brazilian address with CEP lookup, shipping, payment, order confirmation.
-- **Accounts:** sign-in through an httpOnly refresh token, orders, address book, wishlist, profile.
+- **Accounts:** sign-in with a password, a one-time code by email or WhatsApp, or Google, through an
+  httpOnly refresh token; orders with delivery tracking, address book, wishlist, profile.
+- **Reviews:** summary with per-star filters, customers' photos and videos, helpful votes, and a
+  review form with uploads.
+- **Recommendations:** bought together and related products, cart suggestions, best sellers.
+- **Split payment:** one order paid in parts, such as Pix and card, priced by the server.
+- **Emails:** every WordPress and WooCommerce email rendered in the store's look and sent from the
+  storefront.
 - **Content:** blog and pages published from WordPress.
 - **SEO and consent:** head tags and redirects from WordPress, sitemap, consent banner, analytics.
 - **Resilience:** the store keeps opening when WordPress is down, and an outage is never a 404.
@@ -99,6 +111,7 @@ npm run dev
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Structure, caching, sessions, payments |
 | [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Each plugin, and adding or removing one |
 | [docs/STORE_API.md](docs/STORE_API.md) | WooCommerce Store API compatibility and known gaps |
+| [docs/EMAILS.md](docs/EMAILS.md) | Transactional emails: templates, providers, add-ons |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Tokens, primitives, rebranding |
 | [docs/WORDPRESS_SETUP.md](docs/WORDPRESS_SETUP.md) | Connecting and deploying |
 | [AGENTS.md](AGENTS.md) | Conventions for developers and coding agents |

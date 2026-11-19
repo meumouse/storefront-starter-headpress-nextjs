@@ -17,6 +17,7 @@ export const STOREFRONT_ROUTES = {
   page: "/{path}",
   shop: "/shop",
   product: "/product/{slug}",
+  product_review: "/product/{slug}/review",
   product_cat: "/category/{slug}",
   product_tag: "/tag/{slug}",
   cart: "/cart",
@@ -30,7 +31,7 @@ export const STOREFRONT_ROUTES = {
 } as const;
 
 /** Route keys without a page yet. List them under Headpress → Storefront → Routes without a page. */
-export const UNROUTED_KEYS = ["category", "post_tag", "order_pay", "product_review"] as const;
+export const UNROUTED_KEYS = ["category", "post_tag", "order_pay"] as const;
 
 export const paths = {
   home: "/",
@@ -48,6 +49,7 @@ export const paths = {
   wishlist: "/account/wishlist",
   profile: "/account/profile",
   product: (slug: string) => `/product/${slug}`,
+  productReview: (slug: string) => `/product/${slug}/review`,
   category: (slug: string) => `/category/${slug}`,
   tag: (slug: string) => `/tag/${slug}`,
   post: (slug: string) => `/blog/${slug}`,

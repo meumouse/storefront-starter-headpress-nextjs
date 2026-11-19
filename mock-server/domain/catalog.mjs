@@ -250,6 +250,9 @@ export function filterProducts(params) {
       matchesAttributes(product, params),
   );
 
+  if (params.get("orderby") === "include") {
+    return [...found].sort((a, b) => included.indexOf(a.id) - included.indexOf(b.id));
+  }
   const sorter = SORTERS[params.get("orderby") ?? "date"] ?? SORTERS.date;
   const sorted = [...found].sort(sorter);
   return params.get("order") === "desc" && params.get("orderby") === "price" ? sorted.reverse() : sorted;

@@ -39,7 +39,13 @@ import {
 } from "../lib/brazilian-fields";
 import { rememberPlacedOrder } from "../lib/placed-order";
 import { pendingPaymentOf, providerFor } from "../payments/registry";
-import { PaymentError, type Payer, type PaymentData, type PaymentFormHandle } from "../payments/types";
+import {
+  isSplitPlan,
+  PaymentError,
+  type Payer,
+  type PaymentFormHandle,
+  type PaymentSubmission,
+} from "../payments/types";
 import { AddressFields } from "./AddressFields";
 import { OrderSummary } from "./OrderSummary";
 import { PaymentSection } from "./PaymentSection";
@@ -149,7 +155,7 @@ export function CheckoutForm() {
   }, [addressActions, address.values, cart, contact, personal, brazilianRules]);
 
   const placeOrder = useCallback(
-    async (paymentData: PaymentData): Promise<boolean> => {
+    async (submission: PaymentSubmission): Promise<boolean> => {
       // A free order has no payment method: the Store API only asks for one when `needs_payment`.
       if (!method && cart?.needsPayment) return false;
       setPlacing(true);
@@ -162,7 +168,7 @@ export function CheckoutForm() {
           billingAddress,
           shippingAddress: toShippingAddress(billingAddress),
           paymentMethod: method?.id ?? "",
-          paymentData,
+          ...(isSplitPlan(submission) ? { splitLegs: submission.splitLegs } : { paymentData: submission }),
           customerNote: note.trim() || undefined,
           fields: addressActions.checkoutFields({
             cellphone: contact.phone,
@@ -231,8 +237,8 @@ export function CheckoutForm() {
 
     setPlacing(true);
     try {
-      const paymentData = paymentHandle.current ? await paymentHandle.current.submit() : [];
-      if (paymentData) await placeOrder(paymentData);
+      const submission = paymentHandle.current ? await paymentHandle.current.submit() : [];
+      if (submission) await placeOrder(submission);
     } catch (error) {
       setFormError(error instanceof PaymentError ? error.message : t.common.genericError);
     } finally {

@@ -1,3 +1,10 @@
+/** Methods a split part can use, as `config.modules.split_payments.methods` lists them. */
+export const SPLIT_METHODS = [
+  { id: "cielo_pix", title: "Pix", kind: "pix", discount: { type: "percentage", amount: 5 } },
+  { id: "cielo_credit", title: "Credit card", kind: "card", discount: null },
+  { id: "cielo_debit", title: "Debit card", kind: "card", discount: null },
+];
+
 /** `GET /headpress/v1/store/config`, as a store with all six plugins publishes it. */
 export function storeConfig(baseUrl) {
   const rest = `${baseUrl}/wp-json/`;
@@ -25,6 +32,7 @@ export function storeConfig(baseUrl) {
       page: "/{path}",
       shop: "/shop",
       product: "/product/{slug}",
+      product_review: "/product/{slug}/review",
       product_cat: "/category/{slug}",
       product_tag: "/tag/{slug}",
       cart: "/cart",
@@ -114,7 +122,23 @@ export function storeConfig(baseUrl) {
         },
         fields: [],
       },
-      split_payments: { enabled: true, checkout_enabled: true, gateway_id: "headpress_split", min_legs: 2, max_legs: 3 },
+      split_payments: {
+        enabled: true,
+        checkout_enabled: true,
+        max_legs: 3,
+        balance_payments: true,
+        links_enabled: false,
+        gateway_id: "headpress_split",
+        min_legs: 2,
+        min_leg_amount: 100,
+        methods: SPLIT_METHODS,
+        discounts_include_shipping: true,
+      },
+      recommendations: {
+        enabled: true,
+        limit: 8,
+        strategies: ["upsells", "bought_together", "taxonomy", "cross_sells", "best_sellers"],
+      },
       content: { enabled: true },
       search: {
         enabled: true,
@@ -127,8 +151,67 @@ export function storeConfig(baseUrl) {
         ready: true,
         endpoints: {},
       },
-      reviews: { enabled: true, author_display: "first_name_initial", per_page: 5, rating_enabled: true },
+      reviews: {
+        enabled: true,
+        author_display: "first_name_initial",
+        per_page: 5,
+        show_replies: true,
+        moderation: "auto_verified",
+        allow_anonymous: true,
+        one_review_per_product: true,
+        title_max_length: 100,
+        content_required: true,
+        content_min_length: 10,
+        content_max_length: 5000,
+        helpful_enabled: true,
+        helpful_guests: true,
+        edit_window: 30,
+        rating_enabled: true,
+        rating_required: true,
+        show_verified_label: true,
+        verified_owners_only: false,
+        show_avatars: false,
+        guests_allowed: false,
+        captcha_action: "review",
+        upload_mode: "server",
+        voter_header: "X-Headpress-Voter",
+        eligible_statuses: ["completed"],
+        media: {
+          image: {
+            enabled: true,
+            max_files: 5,
+            max_size: 8 * 1024 * 1024,
+            types: ["image/jpeg", "image/png", "image/webp"],
+            extensions: ["jpg", "jpeg", "png", "webp"],
+            max_dimension: 2048,
+          },
+          video: {
+            enabled: true,
+            max_files: 1,
+            max_size: 50 * 1024 * 1024,
+            types: ["video/mp4", "video/quicktime", "video/webm"],
+            extensions: ["mp4", "mov", "webm"],
+            max_duration: 60,
+          },
+        },
+      },
       accounts: { enabled: true },
+      passwordless: {
+        enabled: true,
+        allow_registration: true,
+        code_ttl: 300,
+        code_length: 6,
+        channels: [
+          { id: "email", label: "Email", recipient_type: "email" },
+          { id: "whatsapp", label: "WhatsApp", recipient_type: "phone" },
+        ],
+        allowed_countries: ["BR"],
+        require_captcha: false,
+      },
+      // Google needs a real OAuth client: `MOCK_GOOGLE_CLIENT_ID=… npm run demo` turns it on.
+      ...(process.env.MOCK_GOOGLE_CLIENT_ID
+        ? { google_sign_in: { enabled: true, client_id: process.env.MOCK_GOOGLE_CLIENT_ID } }
+        : {}),
       wishlist: { enabled: true },
       address_book: { enabled: true },
       consent: {
@@ -268,7 +351,19 @@ export function paymentMethods(baseUrl) {
       description: "We confirm the order after receiving the transfer.",
       config: { kind: "offline" },
     },
-    // Real stores list it too. It combines methods, so the checkout must not offer it.
-    { id: "headpress_split", title: "Split payment", description: "", config: {} },
+    // Combines the methods above. The checkout offers it apart, as "pay in parts".
+    {
+      id: "headpress_split",
+      title: "Split payment",
+      description: "",
+      config: {
+        kind: "other",
+        extension_key: "split_payments",
+        min_legs: 2,
+        max_legs: 3,
+        min_leg_amount: 100,
+        methods: SPLIT_METHODS,
+      },
+    },
   ];
 }

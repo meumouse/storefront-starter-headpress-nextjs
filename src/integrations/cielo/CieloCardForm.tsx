@@ -23,10 +23,10 @@ import {
 } from "./card";
 import { prepareCieloCardPayment } from "./prepare-payment";
 
-export function CieloCardForm({ method, cart, guest, getPayer, register }: PaymentFormProps) {
+export function CieloCardForm({ method, amount: charge, guest, getPayer, register }: PaymentFormProps) {
   const hp = useHeadpress();
   const config = toCieloCardConfig(method.config);
-  const amount = cart.totals.total.amount;
+  const amount = charge.amount;
 
   const [values, setValues] = useState<CieloCardValues>({
     number: "",
@@ -126,7 +126,7 @@ export function CieloCardForm({ method, cart, guest, getPayer, register }: Payme
           >
             <option value="">{plan.isPending ? t.checkout.installmentsLoading : t.checkout.cardInstallments}</option>
             {plan.data?.options.map((option) => {
-              const currency = cart.totals.total.currency;
+              const { currency } = charge;
               const each = formatPrice(money(option.installment_amount, currency));
               const suffix = option.interest_free
                 ? t.checkout.installmentInterestFree

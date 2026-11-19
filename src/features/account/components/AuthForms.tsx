@@ -1,9 +1,9 @@
 "use client";
 
-import { useFormatError, useHeadpress } from "@meumouse.com/headpress/react";
+import { useCapability, useFormatError, useHeadpress } from "@meumouse.com/headpress/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useState, type FormEvent, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
@@ -11,6 +11,10 @@ import { Field, Input } from "@/components/ui/field";
 import { Card } from "@/components/ui/layout";
 import { paths } from "@/config/routes";
 import { t } from "@/i18n";
+import { cn } from "@/lib/utils";
+
+import { CodeSignIn, useCodeChannels } from "./CodeSignIn";
+import { GoogleSignInButton, OrDivider } from "./GoogleSignInButton";
 
 function AuthCard({
   title,
@@ -61,11 +65,60 @@ function safeNext(value: string | null): string {
   return value && value.startsWith("/") && !value.startsWith("//") ? value : paths.account;
 }
 
+/** Where a sign-in ends, whichever way it went. */
+function useSignedInRedirect(target: string) {
+  const router = useRouter();
+  return useCallback(() => {
+    router.push(target);
+    router.refresh();
+  }, [router, target]);
+}
+
+/** Google first, when the store offers it: one click and no password to remember. */
+function GoogleOption({ text, onSignedIn }: { text: "signin_with" | "signup_with"; onSignedIn(): void }) {
+  const google = useCapability("google_sign_in");
+  if (!google?.client_id) return null;
+  return (
+    <>
+      <GoogleSignInButton text={text} onSignedIn={onSignedIn} />
+      <OrDivider />
+    </>
+  );
+}
+
+function MethodSwitch({ method, onChange }: { method: "password" | "code"; onChange(method: "password" | "code"): void }) {
+  const options = [
+    { id: "password" as const, label: t.signIn.withPassword },
+    { id: "code" as const, label: t.signIn.withCode },
+  ];
+  return (
+    <div role="radiogroup" aria-label={t.signIn.methodLabel} className="grid grid-cols-2 rounded-control bg-sunken p-1">
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          role="radio"
+          aria-checked={method === option.id}
+          onClick={() => onChange(option.id)}
+          className={cn(
+            "rounded-control px-3 py-1.5 text-sm text-ink-muted transition-colors",
+            method === option.id && "bg-surface font-medium text-ink shadow-card",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function LoginForm() {
   const hp = useHeadpress();
-  const router = useRouter();
   const next = safeNext(useSearchParams().get("next"));
+  const done = useSignedInRedirect(next);
   const { pending, error, run } = useSubmit();
+  const codeChannels = useCodeChannels();
+  const [method, setMethod] = useState<"password" | "code">("password");
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
 
@@ -73,8 +126,7 @@ export function LoginForm() {
     event.preventDefault();
     void run(async () => {
       await hp.auth.login({ login, password });
-      router.push(next);
-      router.refresh();
+      done();
     }, "login");
   };
 
@@ -91,40 +143,46 @@ export function LoginForm() {
         </>
       }
     >
-      <form onSubmit={submit} className="flex flex-col gap-4">
-        <Field label={t.account.email}>
-          <Input
-            type="email"
-            autoComplete="username"
-            required
-            value={login}
-            onChange={(event) => setLogin(event.target.value)}
-          />
-        </Field>
-        <Field label={t.account.password}>
-          <Input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </Field>
-        {error ? <Alert tone="danger">{error}</Alert> : null}
-        <Button type="submit" loading={pending}>
-          {t.account.signIn}
-        </Button>
-        <Link href={paths.forgotPassword} className="text-sm text-brand hover:underline">
-          {t.account.forgotPassword}
-        </Link>
-      </form>
+      <GoogleOption text="signin_with" onSignedIn={done} />
+      {codeChannels.length > 0 ? <MethodSwitch method={method} onChange={setMethod} /> : null}
+      {method === "code" && codeChannels.length > 0 ? (
+        <CodeSignIn onSignedIn={done} />
+      ) : (
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <Field label={t.account.email}>
+            <Input
+              type="email"
+              autoComplete="username"
+              required
+              value={login}
+              onChange={(event) => setLogin(event.target.value)}
+            />
+          </Field>
+          <Field label={t.account.password}>
+            <Input
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </Field>
+          {error ? <Alert tone="danger">{error}</Alert> : null}
+          <Button type="submit" loading={pending}>
+            {t.account.signIn}
+          </Button>
+          <Link href={paths.forgotPassword} className="text-sm text-brand hover:underline">
+            {t.account.forgotPassword}
+          </Link>
+        </form>
+      )}
     </AuthCard>
   );
 }
 
 export function RegisterForm() {
   const hp = useHeadpress();
-  const router = useRouter();
+  const done = useSignedInRedirect(paths.account);
   const { pending, error, run } = useSubmit();
   const [values, setValues] = useState({ first_name: "", last_name: "", email: "", password: "" });
 
@@ -135,8 +193,7 @@ export function RegisterForm() {
     event.preventDefault();
     void run(async () => {
       await hp.auth.register(values);
-      router.push(paths.account);
-      router.refresh();
+      done();
     }, "register");
   };
 
@@ -153,6 +210,7 @@ export function RegisterForm() {
         </>
       }
     >
+      <GoogleOption text="signup_with" onSignedIn={done} />
       <form onSubmit={submit} className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t.account.firstName}>

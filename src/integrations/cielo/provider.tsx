@@ -9,15 +9,19 @@ import { CieloCardForm } from "./CieloCardForm";
 const CARD_GATEWAYS = ["cielo_credit", "cielo_debit"];
 
 /** Pix from `payment_details`: the plugin sends a URL for the image, not base64. */
-export function cieloPendingPix(order: PlacedOrder): PendingPayment | null {
-  const code = order.paymentDetails.cielo_pix_copy_paste;
+export function cieloPixFromDetails(details: Record<string, string>): PendingPayment | null {
+  const code = details.cielo_pix_copy_paste;
   if (!code) return null;
   return {
     type: "pix",
     code,
-    imageUrl: order.paymentDetails.cielo_pix_qr_code_url ?? null,
-    expiresAt: order.paymentDetails.cielo_expires_at ?? null,
+    imageUrl: details.cielo_pix_qr_code_url ?? null,
+    expiresAt: details.cielo_expires_at ?? null,
   };
+}
+
+export function cieloPendingPix(order: PlacedOrder): PendingPayment | null {
+  return cieloPixFromDetails(order.paymentDetails);
 }
 
 export function cieloStatus(status: string): PaymentStatus {
@@ -44,6 +48,7 @@ export const cieloPixProvider: PaymentProvider = {
   supports: (method) => method.id === "cielo_pix",
   Form: createPixForm((method) => cieloDocumentKey(method.config)),
   pendingPayment: cieloPendingPix,
+  pendingFromDetails: cieloPixFromDetails,
   pollStatus: async (hp, { orderId, orderKey }) =>
     cieloStatus((await fetchCieloOrderPayment(hp, orderId, orderKey)).status),
 };

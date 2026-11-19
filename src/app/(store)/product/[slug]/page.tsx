@@ -11,9 +11,11 @@ import { paths } from "@/config/routes";
 import { ProductGrid } from "@/features/catalog/components/ProductCard";
 import { ProductGallery } from "@/features/catalog/components/ProductGallery";
 import { ProductPurchase, type ClientProduct } from "@/features/catalog/components/ProductPurchase";
-import { ProductReviews } from "@/features/catalog/components/ProductReviews";
 import { productJsonLd } from "@/features/catalog/lib/json-ld";
 import { ContentBody } from "@/features/content/components/ContentBody";
+import { BoughtTogether } from "@/features/recommendations/components/BoughtTogether";
+import { productRecommendations } from "@/features/recommendations/lib/recommendations";
+import { ProductReviews } from "@/features/reviews/components/ProductReviews";
 import { t } from "@/i18n";
 import { readOr, safeRead } from "@/lib/headpress/safe-read";
 import { getServerClient } from "@/lib/headpress/server";
@@ -57,14 +59,21 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const product = result.data;
   const primaryCategory = product.categories[0];
 
-  const [variations, related] = await Promise.all([
+  const [variations, recommended] = await Promise.all([
     product.type === "variable" ? readOr([], (hp) => hp.catalog.variations(product.id)) : Promise.resolve([]),
-    primaryCategory
-      ? readOr(null, (hp) =>
-          hp.catalog.list({ category: primaryCategory.id, exclude: [product.id], perPage: 4 }),
-        )
-      : Promise.resolve(null),
+    readOr(null, (hp) => productRecommendations(hp, product.id, { together: 2, related: 4 })),
   ]);
+
+  // Without the recommendations module, or before it has anything to say: the same category.
+  const related =
+    recommended && recommended.related.length > 0
+      ? recommended.related
+      : primaryCategory
+        ? ((await readOr(null, (hp) =>
+            hp.catalog.list({ category: primaryCategory.id, exclude: [product.id], perPage: 4 }),
+          ))?.items ?? [])
+        : [];
+  const together = recommended?.together ?? [];
 
   return (
     <Container className="flex flex-col gap-14 py-8">
@@ -119,14 +128,18 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </section>
       ) : null}
 
-      <div id="reviews" className="max-w-3xl">
-        <ProductReviews product={product} />
+      {together.length > 0 ? (
+        <BoughtTogether product={toClientProduct(product)} suggestions={together.map(toClientProduct)} />
+      ) : null}
+
+      <div id="reviews" className="max-w-4xl scroll-mt-24">
+        <ProductReviews productId={product.id} />
       </div>
 
-      {related && related.items.length > 0 ? (
+      {related.length > 0 ? (
         <section className="flex flex-col gap-5">
           <h2 className="text-xl font-semibold">{t.catalog.relatedTitle}</h2>
-          <ProductGrid products={related.items} />
+          <ProductGrid products={related} />
         </section>
       ) : null}
     </Container>

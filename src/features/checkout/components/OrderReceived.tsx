@@ -13,10 +13,12 @@ import { Card } from "@/components/ui/layout";
 import { paths } from "@/config/routes";
 import { getAnalytics } from "@/features/analytics/analytics";
 import { t } from "@/i18n";
+import { OrderTracking } from "@/integrations/shipping/OrderTracking";
 
 import { readPlacedOrder, type PlacedOrderRecord } from "../lib/placed-order";
 import { providerById } from "../payments/registry";
 import type { PaymentStatus } from "../payments/types";
+import { OrderPayments } from "./OrderPayments";
 import { PaymentInstructions } from "./PaymentInstructions";
 
 const POLL_INTERVAL_MS = 5_000;
@@ -54,7 +56,9 @@ export function OrderReceived({ orderId, orderKey }: { orderId: number; orderKey
   });
 
   const current = status.data ?? null;
-  const showInstructions = record?.pending && current !== "paid" && current !== "expired";
+  // A split order lists each part, with the codes of the parts still to pay.
+  const isSplit = record?.providerId === "split";
+  const showInstructions = !isSplit && record?.pending && current !== "paid" && current !== "expired";
 
   // `trackPurchase` keeps it to once per order per browser; the server reports the sale regardless.
   const paid = current === "paid" || (record !== null && !pollStatus && !record.pending);
@@ -78,6 +82,9 @@ export function OrderReceived({ orderId, orderKey }: { orderId: number; orderKey
           <PaymentInstructions payment={record.pending} />
         </Card>
       ) : null}
+
+      {isSplit ? <OrderPayments orderId={orderId} orderKey={orderKey} /> : null}
+      <OrderTracking orderId={orderId} orderKey={orderKey} />
 
       <div className="flex flex-wrap justify-center gap-3">
         <Button asChild variant="secondary">

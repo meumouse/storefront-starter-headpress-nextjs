@@ -9,8 +9,8 @@ import { Alert, Skeleton } from "@/components/ui/feedback";
 import { ChoiceLabel } from "@/components/ui/field";
 import { t } from "@/i18n";
 
-import { providerFor, selectableMethods } from "../payments/registry";
-import type { Payer, PaymentData, PaymentFormHandle } from "../payments/types";
+import { providerFor, selectableMethods, splitMethodFor } from "../payments/registry";
+import type { Payer, PaymentFormHandle, PaymentSubmission } from "../payments/types";
 
 interface PaymentSectionProps {
   cart: Cart;
@@ -19,7 +19,7 @@ interface PaymentSectionProps {
   onSelect(method: PaymentMethod): void;
   getPayer(): Payer | null;
   register(handle: PaymentFormHandle | null): void;
-  placeOrder(paymentData: PaymentData): Promise<boolean>;
+  placeOrder(submission: PaymentSubmission): Promise<boolean>;
   onError(message: string): void;
 }
 
@@ -36,12 +36,14 @@ export function PaymentSection({
   const hp = useHeadpress();
   const formatError = useFormatError();
   const query = useQuery({ queryKey: ["payment-methods"], queryFn: () => hp.checkout.paymentMethods() });
-  const splitGateway = useCapability("split_payments")?.gateway_id;
+  const split = useCapability("split_payments");
 
-  const methods = useMemo(
-    () => selectableMethods(query.data ?? [], cart, splitGateway),
-    [query.data, cart, splitGateway],
-  );
+  const methods = useMemo(() => {
+    const single = selectableMethods(query.data ?? [], cart, split?.gateway_id);
+    // Paying in parts comes last: most shoppers pay with one method.
+    const splitMethod = splitMethodFor(query.data ?? [], cart, split);
+    return splitMethod ? [...single, splitMethod] : single;
+  }, [query.data, cart, split]);
 
   if (query.isPending) return <Skeleton className="h-40" />;
   if (query.isError) return <Alert tone="danger">{formatError(query.error)}</Alert>;
@@ -69,6 +71,7 @@ export function PaymentSection({
                 <Form
                   method={method}
                   cart={cart}
+                  amount={cart.totals.total}
                   guest={guest}
                   getPayer={getPayer}
                   register={register}

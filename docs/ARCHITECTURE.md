@@ -80,7 +80,9 @@ CheckoutForm ──► PaymentSection ──► providerFor(method) ──► pr
 - A provider's form hands back `payment_data` when asked. A provider with `submitsItself` (PayPal)
   draws its own button and calls `placeOrder()` itself.
 - `selectableMethods()` hides what the shopper cannot pick: gateways the Store API excludes from this
-  cart, the split gateway, and card or wallet methods with no provider.
+  cart, the split gateway, and card or wallet methods with no provider. `splitMethodFor()` offers
+  the split gateway apart, when two methods can be combined; its form submits `splitLegs` instead of
+  `payment_data`, each part prepared by its own method's form.
 - After placing the order, `pendingPayment()` says what the shopper still has to do (Pix, bank slip)
   and `pollStatus()` follows it on the order-received page.
 

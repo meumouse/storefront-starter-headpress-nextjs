@@ -28,6 +28,11 @@ porta escolheu.
 | CPF e data de nascimento | `529.982.247-25` e qualquer data passada |
 | Cartão | `4111 1111 1111 1111`, qualquer data futura e qualquer CVV |
 | Pix | Escolha Pix: o pedido de demonstração é pago após 45 segundos |
+| Pagamento dividido | No checkout, escolha **Split payment**: parte no Pix, o resto no cartão |
+| Entrar com código | Código `123456` para `demo@example.com` ou `11 99999-8888`; um WhatsApp terminado em `0000` mostra a troca para e-mail |
+| Avaliação com fotos | Entre, abra um produto e avalie com foto ou vídeo |
+| Rastreio | Abra um pedido pago: o código de rastreio aparece um minuto depois do pagamento |
+| E-mails | Abra `/api/emails/preview` |
 | Recuperação de carrinho | Abra `/cart/recover/demo-token` |
 | Preferências de mensagens | Abra `/unsubscribe/demo-token` |
 
@@ -37,7 +42,13 @@ porta escolheu.
   URL, páginas de produto com variações, avaliações e JSON-LD.
 - **Carrinho:** gaveta e página, cupons, progresso do frete grátis, frete por CEP.
 - **Checkout:** página única, endereço brasileiro com busca de CEP, frete, pagamento e confirmação.
-- **Contas:** login com refresh token em cookie httpOnly, pedidos, endereços, favoritos e perfil.
+- **Contas:** login com senha, código por e-mail ou WhatsApp, ou Google, com refresh token em cookie
+  httpOnly; pedidos com rastreio da entrega, endereços, favoritos e perfil.
+- **Avaliações:** resumo com filtro por estrelas, fotos e vídeos de clientes, votos de "útil" e
+  formulário com envio de arquivos.
+- **Recomendações:** compre junto e produtos relacionados, sugestões no carrinho, mais vendidos.
+- **Pagamento dividido:** um pedido pago em partes, como Pix e cartão, com valores do servidor.
+- **E-mails:** todo e-mail do WordPress e do WooCommerce com a cara da loja, enviado pela loja.
 - **Conteúdo:** blog e páginas publicados pelo WordPress.
 - **SEO e consentimento:** metatags e redirecionamentos do WordPress, sitemap, banner de cookies e
   analytics.
@@ -105,6 +116,7 @@ A documentação técnica está em inglês.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Estrutura, cache, sessões e pagamentos |
 | [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Cada plugin, e como adicionar ou remover um |
 | [docs/STORE_API.md](docs/STORE_API.md) | Compatibilidade com a Store API e lacunas conhecidas |
+| [docs/EMAILS.md](docs/EMAILS.md) | E-mails transacionais: templates, provedores e add-ons |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Tokens, componentes e identidade visual |
 | [docs/WORDPRESS_SETUP.md](docs/WORDPRESS_SETUP.md) | Conexão e publicação |
 | [AGENTS.md](AGENTS.md) | Convenções para desenvolvedores e agentes de código |

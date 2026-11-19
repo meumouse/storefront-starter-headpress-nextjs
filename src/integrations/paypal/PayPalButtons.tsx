@@ -25,7 +25,7 @@ class CheckoutNotReady extends Error {}
  * The server checks the amount before capturing. An approved order cannot be paid twice, so a
  * refused one redraws the button for a new attempt.
  */
-export function PayPalButtons({ method, cart, getPayer, placeOrder, onError }: PaymentFormProps) {
+export function PayPalButtons({ method, amount, getPayer, placeOrder, onError }: PaymentFormProps) {
   const hp = useHeadpress();
   const config = toPayPalConfig(method.config);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -40,7 +40,7 @@ export function PayPalButtons({ method, cart, getPayer, placeOrder, onError }: P
 
   const flow = config?.flow;
   const clientId = config?.clientId;
-  const total = cart.totals.total.amount;
+  const total = amount.amount;
 
   useEffect(() => {
     if (!config) return;

@@ -3,9 +3,9 @@ import { randomUUID } from "node:crypto";
 
 import { fixtures, json, mockHeadpress, wpError } from "@meumouse.com/headpress/testing";
 
-import { paymentMethods, storeConfig } from "./data/config.mjs";
+import { paymentMethods, SPLIT_METHODS, storeConfig } from "./data/config.mjs";
 import { menus, pages, posts } from "./data/content.mjs";
-import { products, reviewAuthors, reviewTexts } from "./data/products.mjs";
+import { products } from "./data/products.mjs";
 import {
   addItem,
   applyCoupon,
@@ -29,8 +29,24 @@ import {
   storeTags,
   toStoreProduct,
 } from "./domain/catalog.mjs";
+import { forContext, related } from "./domain/recommendations.mjs";
+import {
+  createReview,
+  eligibility,
+  listReviews,
+  readUpload,
+  reviewMedia,
+  reviewSummary,
+  storeUpload,
+  vote,
+  votedIds,
+} from "./domain/reviews.mjs";
 
-const DEMO_CUSTOMER = { login: "demo@example.com", password: "demo-password" };
+const DEMO_CUSTOMER = { login: "demo@example.com", password: "demo-password", phone: "5511999998888" };
+/** Every one-time code of the demo. The mock prints it too, as a real store would send it. */
+const DEMO_CODE = "123456";
+/** Seconds after the payment until a demo order gets a tracking code. */
+const SHIPPED_AFTER = 60;
 /** A fake Pix code in the EMV format, so QR rendering works. */
 const PIX_CODE = "00020126580014br.gov.bcb.pix0136mock-0000-0000-0000-000000000000520400005303986540510.005802BR5909KESTREL6009SAO PAULO62070503***6304ABCD";
 /** Seconds until a demo Pix counts as paid. */
@@ -38,6 +54,10 @@ const PIX_PAID_AFTER = 45;
 
 const orders = new Map();
 const accessTokens = new Set();
+const challenges = new Map();
+const registrations = new Map();
+/** Review uploads not yet attached to a review. */
+const pendingUploads = new Map();
 let nextOrderId = 1200;
 let wishlist = [101];
 let customer = {
@@ -49,6 +69,9 @@ let customer = {
   avatar_url: "",
   billing: { first_name: "Demo", last_name: "Customer", email: DEMO_CUSTOMER.login, phone: "11999998888", postcode: "01310100", address_1: "Av. Paulista", city: "Sao Paulo", state: "SP", country: "BR" },
   shipping: { first_name: "Demo", last_name: "Customer", postcode: "01310100", address_1: "Av. Paulista", city: "Sao Paulo", state: "SP", country: "BR" },
+  phone: { number: DEMO_CUSTOMER.phone, verified: true, verified_at: "2026-09-01T12:00:00" },
+  email_verified: true,
+  google: { linked: false, email: null, linked_at: null },
 };
 let addresses = [
   {
@@ -108,17 +131,19 @@ function requireAuth(handler) {
     isAuthorized(request) ? handler(request, params) : wpError(401, "headpress_unauthorized", "Sign in first.");
 }
 
+const STATUS_LABELS = { pending: "Pending payment", partial_paid: "Partially paid", processing: "Processing" };
+
 function orderSummary(order) {
   return {
     id: order.id,
     number: String(order.id),
     status: order.status,
-    status_label: order.status === "processing" ? "Processing" : "Pending payment",
+    status_label: STATUS_LABELS[order.status] ?? order.status,
     date_created: order.createdAt,
     currency: "BRL",
     total: order.total,
     item_count: order.items.reduce((sum, item) => sum + item.quantity, 0),
-    needs_payment: order.status === "pending",
+    needs_payment: order.status === "pending" || order.status === "partial_paid",
     order_key: order.key,
   };
 }
@@ -148,7 +173,169 @@ function orderDetail(order) {
 
 function settlePix(order) {
   const age = (Date.now() - order.createdAtMs) / 1000;
-  if (order.pix && order.status === "pending" && age >= PIX_PAID_AFTER) order.status = "processing";
+  if (order.split) {
+    for (const leg of order.split) {
+      if (leg.kind === "pix" && leg.status === "pending" && age >= PIX_PAID_AFTER) {
+        leg.status = "paid";
+        leg.paidAt = new Date().toISOString();
+      }
+    }
+    const paid = order.split.filter((leg) => leg.status === "paid").length;
+    order.status = paid === order.split.length ? "processing" : paid > 0 ? "partial_paid" : "pending";
+    if (order.status === "processing") order.paidAtMs ??= Date.now();
+    return;
+  }
+  if (order.pix && order.status === "pending" && age >= PIX_PAID_AFTER) {
+    order.status = "processing";
+    order.paidAtMs = Date.now();
+  }
+}
+
+/** A split plan checked like Headpress checks it, with each part's discount and charge. */
+function planSplit(total, legs) {
+  const fields = {};
+  if (!Array.isArray(legs) || legs.length < 2 || legs.length > 3) fields.legs = "Use 2 to 3 payment methods.";
+  const priced = (Array.isArray(legs) ? legs : []).map((leg, index) => {
+    const gateway = leg.gateway ?? leg.gateway_id;
+    const method = SPLIT_METHODS.find((entry) => entry.id === gateway);
+    const amount = Number(leg.amount) || 0;
+    if (!method) fields[`legs.${index}.gateway_id`] = "This method cannot pay a part.";
+    if (amount < 100) fields[`legs.${index}.amount`] = "Each part must be at least R$ 1,00.";
+    const discount = method?.discount ? Math.round((amount * method.discount.amount) / 100) : 0;
+    return {
+      gateway,
+      kind: method?.kind ?? "other",
+      title: method?.title ?? gateway,
+      amount,
+      discount,
+      charge: amount - discount,
+    };
+  });
+  const sum = priced.reduce((value, leg) => value + leg.amount, 0);
+  if (!fields.legs && sum !== total) fields.legs = `The parts must add up to ${total}.`;
+  return { fields, legs: priced, discountTotal: priced.reduce((value, leg) => value + leg.discount, 0) };
+}
+
+function paymentEntry(order, leg, index, baseUrl) {
+  return {
+    id: order.id * 10 + index,
+    gateway_id: leg.gateway,
+    title: leg.title,
+    kind: leg.kind,
+    amount: leg.charge,
+    refunded_amount: 0,
+    status: leg.status,
+    source: "checkout",
+    created_at: order.createdAt,
+    paid_at: leg.paidAt ?? null,
+    expires_at: leg.kind === "pix" ? order.expiresAt : null,
+    payment_order: { id: order.id * 10 + index, key: `${order.key}_${index}` },
+    payment_details:
+      leg.kind === "pix" && leg.status === "pending"
+        ? { cielo_pix_copy_paste: PIX_CODE, cielo_pix_qr_code_url: `${baseUrl}/mock/qr.svg`, cielo_expires_at: order.expiresAt }
+        : {},
+    redirect_url: "",
+    pay_url: "",
+  };
+}
+
+/** `GET /store/orders/{id}/payments`: the parts of a split order, or the order as its only part. */
+function paymentSummary(order, baseUrl) {
+  settlePix(order);
+  const payments = order.split
+    ? order.split.map((leg, index) => paymentEntry(order, leg, index, baseUrl))
+    : [
+        {
+          id: 0,
+          gateway_id: order.paymentMethod,
+          title: order.paymentTitle,
+          kind: order.pix ? "pix" : "card",
+          amount: order.total,
+          refunded_amount: 0,
+          status: order.status === "pending" ? "pending" : "paid",
+          source: "order",
+          created_at: order.createdAt,
+          paid_at: null,
+          expires_at: null,
+          payment_order: null,
+          payment_details: {},
+          redirect_url: "",
+          pay_url: "",
+        },
+      ];
+  const sumOf = (status) =>
+    payments.filter((payment) => payment.status === status).reduce((sum, payment) => sum + payment.amount, 0);
+  const paid = sumOf("paid");
+  return {
+    order_id: order.id,
+    order_number: String(order.id),
+    order_status: order.status,
+    currency: "BRL",
+    total: order.total,
+    paid,
+    refunded: 0,
+    pending: sumOf("pending"),
+    remaining: Math.max(order.total - paid, 0),
+    state: paid >= order.total ? "paid" : paid > 0 ? "partial" : "unpaid",
+    is_split: Boolean(order.split),
+    needs_payment: Boolean(order.split) && paid < order.total,
+    payments,
+    methods: [],
+  };
+}
+
+function orderTracking(order) {
+  settlePix(order);
+  const shippedAt = order.paidAtMs ? order.paidAtMs + SHIPPED_AFTER * 1000 : null;
+  const code = `QB${String(order.id).padStart(9, "0")}BR`;
+  const promised = new Date(order.createdAtMs + 6 * 86_400_000);
+  return {
+    order_id: order.id,
+    status: order.status,
+    items:
+      shippedAt && Date.now() >= shippedAt
+        ? [
+            {
+              tracking_number: code,
+              provider: "correios",
+              carrier_name: "Correios",
+              provider_label: "Correios",
+              tracking_link: `https://rastreamento.correios.com.br/app/index.php?objetos=${code}`,
+              ship_date: new Date(shippedAt).toISOString().slice(0, 10),
+              ship_date_label: new Date(shippedAt).toLocaleDateString("en-GB"),
+              date_label: "",
+            },
+          ]
+        : [],
+    delivery_promise: {
+      days: 6,
+      date: promised.toISOString().slice(0, 10),
+      date_label: promised.toLocaleDateString("en-GB"),
+      carrier: "Correios",
+      method: order.shippingTitle,
+      overdue: false,
+    },
+  };
+}
+
+function challengeBody(challenge) {
+  return {
+    challenge_id: challenge.id,
+    channel: challenge.channel,
+    masked_recipient: challenge.masked,
+    expires_in: 300,
+    resend_in: challenge.resends >= 3 ? null : 30,
+  };
+}
+
+function maskRecipient(channel, recipient) {
+  if (channel !== "email") return `*********${recipient.slice(-4)}`;
+  const [name, domain] = recipient.split("@");
+  return `${name.slice(0, 2)}***@${domain}`;
+}
+
+function voterOf(request) {
+  return isAuthorized(request) ? `customer-${customer.id}` : (request.headers.get("X-Headpress-Voter") ?? "anonymous");
 }
 
 /** The order's payment object of the Cielo plugin. */
@@ -402,6 +589,11 @@ export function createRoutes({ baseUrl }) {
 
       const totals = cartTotals(cart, baseUrl);
       const method = paymentMethods(baseUrl).find((entry) => entry.id === body.payment_method);
+      const isSplit = method?.config.extension_key === "split_payments";
+      const plan = isSplit ? planSplit(totals.total, body.extensions?.headpress?.split_payments?.legs) : null;
+      if (plan && Object.keys(plan.fields).length > 0) {
+        return wpError(422, "headpress_validation_failed", Object.values(plan.fields)[0], { fields: plan.fields });
+      }
       // A free order has no payment to make, so it needs no method.
       if (!method && totals.total > 0) {
         return wpError(400, "woocommerce_rest_invalid_payment_method", "Choose a payment method.");
@@ -412,7 +604,9 @@ export function createRoutes({ baseUrl }) {
       const order = {
         id,
         key: `wc_order_${randomUUID().slice(0, 13)}`,
-        status: pix || method?.id === "bacs" ? "pending" : "processing",
+        status: isSplit ? "partial_paid" : pix || method?.id === "bacs" ? "pending" : "processing",
+        // A card part is approved at once; a Pix part is paid after a while, like any demo Pix.
+        split: plan?.legs.map((leg) => ({ ...leg, status: leg.kind === "pix" ? "pending" : "paid" })) ?? null,
         pix,
         paymentMethod: method?.id ?? "",
         paymentTitle: method?.title ?? "",
@@ -425,7 +619,7 @@ export function createRoutes({ baseUrl }) {
         discount: totals.discount,
         shipping: totals.selected?.cost ?? 0,
         shippingTitle: totals.selected?.label ?? "",
-        total: totals.total,
+        total: totals.total - (plan?.discountTotal ?? 0),
         items: cart.items.map((item) => {
           const { store } = findSellable(item.id, baseUrl);
           const amount = Number(store.prices.price) * item.quantity;
@@ -444,6 +638,7 @@ export function createRoutes({ baseUrl }) {
           };
         }),
       };
+      if (order.status === "processing") order.paidAtMs = Date.now();
       orders.set(id, order);
       deleteCart(cart);
 
@@ -455,9 +650,34 @@ export function createRoutes({ baseUrl }) {
         billing_address: body.billing_address,
         shipping_address: body.shipping_address,
         payment_method: order.paymentMethod,
-        payment_result: paymentResult(order, order.paymentMethod, baseUrl),
+        payment_result: isSplit
+          ? {
+              payment_status: "pending",
+              payment_details: [],
+              redirect_url: `http://localhost:3000/checkout/order-received?order_id=${order.id}&key=${order.key}`,
+            }
+          : paymentResult(order, order.paymentMethod, baseUrl),
         totals: { currency_code: "BRL" },
-        extensions: {},
+        extensions: order.split
+          ? {
+              headpress: {
+                split_payments: {
+                  legs: order.split.map((leg, index) => {
+                    const entry = paymentEntry(order, leg, index, baseUrl);
+                    return {
+                      gateway_id: leg.gateway,
+                      amount: leg.charge,
+                      status: leg.status === "paid" ? "success" : "pending",
+                      message: "",
+                      redirect_url: "",
+                      payment_details: entry.payment_details,
+                      payment: entry,
+                    };
+                  }),
+                },
+              },
+            }
+          : {},
       });
     },
     "GET /wp-json/headpress/v1/store/orders/:id/analytics": (_request, { id }) => {
@@ -613,25 +833,70 @@ export function createRoutes({ baseUrl }) {
       });
     },
     "POST /wp-json/headpress/v1/store/search/events": () => json({ recorded: 1 }, { status: 202 }),
-    "GET /wp-json/headpress/v1/store/products/:id/reviews": (_request, { id }) => {
-      const product = findProduct(id);
-      const count = product?.reviews ?? 0;
-      return json(
-        Array.from({ length: count }, (_, index) => ({
-          id: Number(id) * 10 + index,
-          product_id: Number(id),
-          rating: Math.round(product.rating),
-          title: "",
-          content: reviewTexts[index % reviewTexts.length],
-          author: { name: reviewAuthors[index % reviewAuthors.length], anonymous: false, avatar: null },
-          verified: index === 0,
-          created_at: "2026-09-20T12:00:00",
-          media: [],
-          helpful_count: 0,
-          reply: null,
-        })),
-        { headers: { "X-WP-Total": String(count), "X-WP-TotalPages": "1" } },
-      );
+    "GET /wp-json/headpress/v1/store/products/:id/reviews": (request, { id }) => {
+      const page = listReviews(baseUrl, Number(id), new URL(request.url).searchParams);
+      return json(page.items, {
+        headers: { "X-WP-Total": String(page.total), "X-WP-TotalPages": String(Math.ceil(page.total / page.perPage)) },
+      });
+    },
+    "GET /wp-json/headpress/v1/store/products/:id/reviews/summary": (_request, { id }) =>
+      findProduct(id) ? json(reviewSummary(baseUrl, Number(id))) : wpError(404, "headpress_not_found", "Unknown product."),
+    "GET /wp-json/headpress/v1/store/products/:id/reviews/media": (request, { id }) => {
+      const params = new URL(request.url).searchParams;
+      const media = reviewMedia(baseUrl, Number(id));
+      const perPage = Number(params.get("per_page") ?? 20);
+      return json(media.slice(0, perPage), {
+        headers: { "X-WP-Total": String(media.length), "X-WP-TotalPages": String(Math.ceil(media.length / perPage)) },
+      });
+    },
+    "GET /wp-json/headpress/v1/store/products/:id/reviews/eligibility": (request, { id }) =>
+      json(eligibility(Number(id), isAuthorized(request) ? customer.id : null)),
+    "GET /wp-json/headpress/v1/store/products/:id/reviews/votes": (request, { id }) =>
+      json({ review_ids: votedIds(Number(id), voterOf(request)) }),
+    "POST /wp-json/headpress/v1/store/products/:id/reviews": async (request, { id }) => {
+      if (!isAuthorized(request)) return wpError(401, "headpress_review_login_required", "Sign in to review this product.");
+      const check = eligibility(Number(id), customer.id);
+      if (!check.can_review) return wpError(409, "headpress_review_already_exists", "You already reviewed this product.");
+      const body = await request.json();
+      const fields = {};
+      if (!body.rating) fields.rating = "Choose a rating.";
+      if ((body.content ?? "").trim().length < 10) fields.content = "Write at least 10 characters.";
+      if (Object.keys(fields).length > 0) {
+        return wpError(400, "headpress_validation_failed", Object.values(fields)[0], { fields });
+      }
+      const review = createReview(baseUrl, Number(id), customer, body, pendingUploads);
+      for (const entry of body.media ?? []) pendingUploads.delete(entry.id);
+      return json({ status: "approved", review }, { status: 201 });
+    },
+    "POST /wp-json/headpress/v1/store/reviews/media": async (request) => {
+      const form = await request.formData();
+      const file = form.get("file");
+      if (!(file instanceof Blob)) return wpError(400, "headpress_invalid_param", "Send a file.");
+      const upload = await storeUpload(baseUrl, file);
+      // The review keeps the media without the upload's secret.
+      const media = { ...upload };
+      delete media.token;
+      delete media.expires_at;
+      pendingUploads.set(upload.id, media);
+      return json(upload, { status: 201 });
+    },
+    "DELETE /wp-json/headpress/v1/store/reviews/media/:id": (_request, { id }) => {
+      pendingUploads.delete(Number(id));
+      return new Response(null, { status: 204 });
+    },
+    "POST /wp-json/headpress/v1/store/reviews/:id/helpful": (request, { id }) => {
+      const result = vote(Number(id), voterOf(request), true);
+      return result ? json(result) : wpError(404, "headpress_not_found", "Unknown review.");
+    },
+    "DELETE /wp-json/headpress/v1/store/reviews/:id/helpful": (request, { id }) => {
+      const result = vote(Number(id), voterOf(request), false);
+      return result ? json(result) : wpError(404, "headpress_not_found", "Unknown review.");
+    },
+    "GET /mock/uploads/:id": (_request, { id }) => {
+      const upload = readUpload(id);
+      return upload
+        ? new Response(upload.bytes, { headers: { "Content-Type": upload.mime, "Cache-Control": "public, max-age=3600" } })
+        : new Response("Not found", { status: 404 });
     },
     "GET /wp-json/headpress/v1/store/content": (request) => {
       const path = new URL(request.url).searchParams.get("path");
@@ -653,6 +918,66 @@ export function createRoutes({ baseUrl }) {
         { headers: { "X-WP-Total": String(posts.length), "X-WP-TotalPages": "1" } },
       ),
 
+    // ----- Headpress: recommendations -----
+    "GET /wp-json/headpress/v1/store/products/:id/related": (request, { id }) => {
+      const params = new URL(request.url).searchParams;
+      const product = findProduct(id);
+      if (!product) return wpError(404, "headpress_not_found", "Unknown product.");
+      const strategy = params.get("strategy") ?? "auto";
+      return json({
+        product_id: product.id,
+        strategy,
+        items: related(product.id, strategy, Number(params.get("limit") ?? 8)),
+      });
+    },
+    "GET /wp-json/headpress/v1/store/recommendations": (request) => {
+      const params = new URL(request.url).searchParams;
+      const context = params.get("context");
+      // Variations count as their parent, as on a real store.
+      const productIds = (params.get("product_ids") ?? "")
+        .split(",")
+        .filter(Boolean)
+        .map((value) => (Number(value) >= 1000 ? Math.floor(Number(value) / 100) : Number(value)));
+      if (context !== "cart" && context !== "home") return wpError(400, "headpress_invalid_param", "Unknown context.");
+      if (context === "cart" && productIds.length === 0) {
+        return wpError(400, "headpress_invalid_param", "The cart context needs product_ids.");
+      }
+      return json({ context, product_ids: productIds, items: forContext(context, productIds, Number(params.get("limit") ?? 8)) });
+    },
+
+    // ----- Headpress: split payments -----
+    "POST /wp-json/headpress/v1/store/split-payments/quote": async (request) => {
+      const cart = getCart(request.headers.get("Cart-Token"));
+      if (cart.items.length === 0) return wpError(422, "headpress_validation_failed", "The cart is empty.", { fields: { cart: "Empty." } });
+      const { total } = cartTotals(cart, baseUrl);
+      const plan = planSplit(total, (await request.json()).legs);
+      if (Object.keys(plan.fields).length > 0) {
+        return wpError(422, "headpress_validation_failed", Object.values(plan.fields)[0], { fields: plan.fields });
+      }
+      return json({
+        currency: "BRL",
+        total,
+        legs: plan.legs.map(({ gateway, kind, amount, discount, charge }) => ({ gateway, kind, amount, discount, charge })),
+        discount_total: plan.discountTotal,
+        charge_total: total - plan.discountTotal,
+        valid: true,
+      });
+    },
+    "GET /wp-json/headpress/v1/store/orders/:id/payments": (request, { id }) => {
+      const order = orders.get(Number(id));
+      const key = new URL(request.url).searchParams.get("key");
+      if (!order || (order.key !== key && !isAuthorized(request))) return wpError(404, "headpress_not_found", "Order not found.");
+      return json(paymentSummary(order, baseUrl), { headers: { "Cache-Control": "no-store, private" } });
+    },
+
+    // ----- Headpress: shipping (HubGo tracking) -----
+    "GET /wp-json/headpress/v1/store/orders/:id/tracking": (request, { id }) => {
+      const order = orders.get(Number(id));
+      const key = new URL(request.url).searchParams.get("key");
+      if (!order || order.key !== key) return wpError(404, "headpress_not_found", "Order not found.");
+      return json(orderTracking(order), { headers: { "Cache-Control": "no-store" } });
+    },
+
     // ----- Headpress: accounts -----
     "POST /wp-json/headpress/v1/store/auth/login": async (request) => {
       const { login, password } = await request.json();
@@ -661,6 +986,85 @@ export function createRoutes({ baseUrl }) {
       }
       return json(sessionBody({ cart_token: request.headers.get("Cart-Token") }));
     },
+    "POST /wp-json/headpress/v1/store/auth/otp/start": async (request) => {
+      const { channel, recipient = "" } = await request.json();
+      const value = channel === "email" ? recipient.trim().toLowerCase() : recipient.replace(/\D/g, "");
+      if (channel === "email" ? !value.includes("@") : value.length < 10) {
+        return wpError(400, "headpress_invalid_recipient", "Check the email or phone number.");
+      }
+      // A number ending in 0000 shows the WhatsApp outage path: Headpress names the fallback.
+      if (channel === "whatsapp" && value.endsWith("0000")) {
+        return wpError(424, "headpress_channel_unavailable", "WhatsApp is unavailable right now.", {
+          fallback_channels: ["email"],
+        });
+      }
+      const challenge = {
+        id: randomUUID(),
+        channel,
+        recipient: channel === "whatsapp" && value.length <= 11 ? `55${value}` : value,
+        masked: maskRecipient(channel, value),
+        resends: 0,
+        attempts: 5,
+      };
+      challenges.set(challenge.id, challenge);
+      console.log(`[mock] one-time code for ${challenge.masked}: ${DEMO_CODE}`);
+      return json(challengeBody(challenge));
+    },
+    "POST /wp-json/headpress/v1/store/auth/otp/resend": async (request) => {
+      const challenge = challenges.get((await request.json()).challenge_id);
+      if (!challenge) return wpError(404, "headpress_otp_not_found", "This code expired. Start over.");
+      if (challenge.resends >= 3) return wpError(429, "headpress_otp_resend_limit", "No more codes for this attempt.");
+      challenge.resends += 1;
+      return json(challengeBody(challenge));
+    },
+    "POST /wp-json/headpress/v1/store/auth/otp/verify": async (request) => {
+      const { challenge_id: challengeId, code } = await request.json();
+      const challenge = challenges.get(challengeId);
+      if (!challenge) return wpError(404, "headpress_otp_not_found", "This code expired. Start over.");
+      if (code !== DEMO_CODE) {
+        challenge.attempts -= 1;
+        return challenge.attempts <= 0
+          ? wpError(429, "headpress_otp_locked", "Too many wrong codes. Ask for a new one.")
+          : wpError(400, "headpress_otp_invalid", "That code is not right.", { attempts_left: challenge.attempts });
+      }
+      challenges.delete(challengeId);
+      const known = challenge.recipient === DEMO_CUSTOMER.login || challenge.recipient === DEMO_CUSTOMER.phone;
+      if (known) {
+        return json(sessionBody({ cart_token: request.headers.get("Cart-Token"), purpose: "login", grant: { expires_in: 600 } }));
+      }
+      const registrationToken = randomUUID();
+      registrations.set(registrationToken, challenge);
+      return json({ needs_registration: true, registration_token: registrationToken, expires_in: 900 });
+    },
+    "POST /wp-json/headpress/v1/store/auth/otp/register": async (request) => {
+      const { registration_token: token, email, first_name = "", last_name = "" } = await request.json();
+      const challenge = registrations.get(token);
+      if (!challenge) return wpError(400, "headpress_registration_expired", "Start over to create the account.");
+      registrations.delete(token);
+      customer = {
+        ...customer,
+        email,
+        first_name,
+        last_name,
+        display_name: `${first_name} ${last_name}`.trim() || email,
+        phone: challenge.channel === "email" ? null : { number: challenge.recipient, verified: true, verified_at: new Date().toISOString() },
+      };
+      return json(sessionBody({ cart_token: request.headers.get("Cart-Token") }), { status: 201 });
+    },
+    "POST /wp-json/headpress/v1/store/auth/google": async (request) => {
+      const { credential } = await request.json();
+      if (!credential) return wpError(401, "headpress_google_invalid_token", "Google did not confirm the account.");
+      customer = { ...customer, google: { linked: true, email: customer.email, linked_at: new Date().toISOString() } };
+      return json(sessionBody({ cart_token: request.headers.get("Cart-Token") }));
+    },
+    "POST /wp-json/headpress/v1/store/customers/me/google": requireAuth(async () => {
+      customer = { ...customer, google: { linked: true, email: customer.email, linked_at: new Date().toISOString() } };
+      return json(customer.google);
+    }),
+    "DELETE /wp-json/headpress/v1/store/customers/me/google": requireAuth(() => {
+      customer = { ...customer, google: { linked: false, email: null, linked_at: null } };
+      return new Response(null, { status: 204 });
+    }),
     "POST /wp-json/headpress/v1/store/auth/register": async (request) => {
       const { email, first_name = "", last_name = "" } = await request.json();
       customer = { ...customer, email, first_name, last_name, display_name: `${first_name} ${last_name}`.trim() };
