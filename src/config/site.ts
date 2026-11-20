@@ -10,6 +10,6 @@ export const siteConfig = {
   catalog: {
     perPage: 12,
     /** Attribute taxonomies offered as filters on listings. */
-    filterAttributes: ["pa_color", "pa_size"],
+    filterAttributes: ["pa_color", "pa_storage"],
   },
 } as const;

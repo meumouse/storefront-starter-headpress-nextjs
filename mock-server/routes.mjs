@@ -5,7 +5,7 @@ import { fixtures, json, mockHeadpress, wpError } from "@meumouse.com/headpress/
 
 import { paymentMethods, SPLIT_METHODS, storeConfig } from "./data/config.mjs";
 import { menus, pages, posts } from "./data/content.mjs";
-import { products } from "./data/products.mjs";
+import { attributes, products } from "./data/products.mjs";
 import {
   addItem,
   applyCoupon,
@@ -24,7 +24,9 @@ import {
   findProduct,
   findSellable,
   installmentPlans,
+  attributeTerms,
   placeholderImage,
+  shapeOfImage,
   storeCategories,
   storeTags,
   toStoreProduct,
@@ -48,7 +50,7 @@ const DEMO_CODE = "123456";
 /** Seconds after the payment until a demo order gets a tracking code. */
 const SHIPPED_AFTER = 60;
 /** A fake Pix code in the EMV format, so QR rendering works. */
-const PIX_CODE = "00020126580014br.gov.bcb.pix0136mock-0000-0000-0000-000000000000520400005303986540510.005802BR5909KESTREL6009SAO PAULO62070503***6304ABCD";
+const PIX_CODE = "00020126580014br.gov.bcb.pix0136mock-0000-0000-0000-000000000000520400005303986540510.005802BR5909VOLT WIRE6009SAO PAULO62070503***6304ABCD";
 /** Seconds until a demo Pix counts as paid. */
 const PIX_PAID_AFTER = 45;
 
@@ -391,7 +393,7 @@ export function createRoutes({ baseUrl }) {
     // ----- Media and the stand-in for Cielo's script -----
     "GET /media/:file": (request, { file }) => {
       const hue = Number(new URL(request.url).searchParams.get("hue") ?? 200);
-      return new Response(placeholderImage(file, hue), {
+      return new Response(placeholderImage(file, hue, shapeOfImage(file)), {
         headers: { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=3600" },
       });
     },
@@ -445,20 +447,18 @@ export function createRoutes({ baseUrl }) {
     "GET /wp-json/wc/store/v1/products/categories": () => json(storeCategories(baseUrl)),
     "GET /wp-json/wc/store/v1/products/tags": () => json(storeTags()),
     "GET /wp-json/wc/store/v1/products/attributes": () =>
-      json([
-        { id: 1, name: "Color", taxonomy: "pa_color", type: "select", order: "menu_order", has_archives: false, count: 3 },
-        { id: 2, name: "Size", taxonomy: "pa_size", type: "select", order: "menu_order", has_archives: false, count: 3 },
-      ]),
-    "GET /wp-json/wc/store/v1/products/attributes/:id/terms": (_request, { id }) =>
       json(
-        (id === "1" ? ["Sand", "Moss", "Ink"] : ["S", "M", "L"]).map((name, index) => ({
-          id: Number(id) * 100 + index,
-          name,
-          slug: name.toLowerCase(),
-          count: 1,
-          description: "",
+        attributes.map((attribute) => ({
+          id: attribute.id,
+          name: attribute.name,
+          taxonomy: `pa_${attribute.key}`,
+          type: "select",
+          order: "menu_order",
+          has_archives: false,
+          count: attributeTerms(attribute.id).length,
         })),
       ),
+    "GET /wp-json/wc/store/v1/products/attributes/:id/terms": (_request, { id }) => json(attributeTerms(id)),
     "GET /wp-json/wc/store/v1/products/collection-data": (request) => {
       const params = new URL(request.url).searchParams;
       const found = filterProducts(params);

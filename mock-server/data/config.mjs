@@ -13,8 +13,8 @@ export function storeConfig(baseUrl) {
     version: "mock00000001",
     generated_at: new Date().toISOString(),
     store: {
-      name: "Kestrel & Co.",
-      description: "A demo store running on a mock WordPress.",
+      name: "Volt & Wire",
+      description: "A demo electronics store running on a mock WordPress.",
       language: "en-US",
       timezone: "America/Sao_Paulo",
       headpress_version: "1.6.0",

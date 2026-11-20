@@ -48,7 +48,7 @@ function seed(baseUrl) {
       helpful_count: index === 0 ? 4 : index,
       reply:
         index === 0
-          ? { content: "Thank you! We are glad it arrived well.", created_at: "2026-09-21T10:00:00Z", author: { name: "Kestrel & Co." } }
+          ? { content: "Thank you! Glad it arrived quickly and works well.", created_at: "2026-09-21T10:00:00Z", author: { name: "Volt & Wire" } }
           : null,
     }));
     reviews.set(product.id, list);

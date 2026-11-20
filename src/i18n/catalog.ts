@@ -2,9 +2,9 @@ import { defineMessages } from "./define";
 
 export const catalog = defineMessages(
   {
-    heroEyebrow: "New season",
-    heroTitle: "Well-made things for everyday life",
-    heroDescription: "A demonstration storefront running on Next.js and the Headpress commerce engine.",
+    heroEyebrow: "This week's deals",
+    heroTitle: "Tech that keeps up with you",
+    heroDescription: "Phones, laptops, audio and gaming in a demo store running on Next.js and the Headpress commerce engine.",
     heroAction: "Browse the shop",
     categoriesTitle: "Shop by category",
     featuredTitle: "Featured",
@@ -67,9 +67,9 @@ export const catalog = defineMessages(
   },
   {
     "pt-BR": {
-      heroEyebrow: "Nova coleção",
-      heroTitle: "Coisas bem feitas para o dia a dia",
-      heroDescription: "Uma loja de demonstração com Next.js e o motor de comércio Headpress.",
+      heroEyebrow: "Ofertas da semana",
+      heroTitle: "Tecnologia que acompanha você",
+      heroDescription: "Celulares, notebooks, áudio e games numa loja de demonstração com Next.js e o motor de comércio Headpress.",
       heroAction: "Ver a loja",
       categoriesTitle: "Compre por categoria",
       featuredTitle: "Destaques",
@@ -131,9 +131,9 @@ export const catalog = defineMessages(
       noPosts: "Nada publicado ainda.",
     },
     es: {
-      heroEyebrow: "Nueva temporada",
-      heroTitle: "Cosas bien hechas para el día a día",
-      heroDescription: "Una tienda de demostración con Next.js y el motor de comercio Headpress.",
+      heroEyebrow: "Ofertas de la semana",
+      heroTitle: "Tecnología que te acompaña",
+      heroDescription: "Celulares, laptops, audio y gaming en una tienda de demostración con Next.js y el motor de comercio Headpress.",
       heroAction: "Ver la tienda",
       categoriesTitle: "Compra por categoría",
       featuredTitle: "Destacados",

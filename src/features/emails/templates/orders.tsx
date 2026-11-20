@@ -182,13 +182,22 @@ const exampleOrder = {
   currency: "BRL",
   currency_minor_unit: 2,
   items: [
-    { name: "Stoneware mug", quantity: 2, total: 17800, image: null, meta: [{ label: "Color", value: "Sand" }] },
-    { name: "Linen throw", quantity: 1, total: 34900, image: null, meta: [] },
+    {
+      name: "Nova X15",
+      quantity: 1,
+      total: 539900,
+      image: null,
+      meta: [
+        { label: "Color", value: "Graphite" },
+        { label: "Storage", value: "256 GB" },
+      ],
+    },
+    { name: "Pulse Buds Pro", quantity: 1, total: 89900, image: null, meta: [{ label: "Color", value: "White" }] },
   ],
-  subtotal: 52700,
-  discount: 2635,
+  subtotal: 629800,
+  discount: 31490,
   shipping: { label: "PAC", total: 0 },
-  total: 50065,
+  total: 598310,
   payment_method: "Pix",
   shipping_address: { name: "Ana Souza", lines: ["Av. Paulista, 1000 - Bela Vista", "São Paulo - SP", "01310-100"] },
 };
