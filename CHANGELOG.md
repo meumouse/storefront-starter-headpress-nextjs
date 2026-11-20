@@ -27,6 +27,10 @@ All notable changes to this project are documented here. The format follows
 - **Payment forms now charge the amount they are given, so a gateway can pay one part of a split.**
 - **The demo is now an electronics store: 29 made-up products in eight categories, color and storage
   variations priced by storage, device drawings as images, and matching pages and posts.**
+- **The demo now shows product photos you add to `mock-server/photos/`, as files or as links in
+  `photos.json`, kept out of Git; products without one are still drawn.**
+- **In development, `next/image` now optimizes images from local addresses, such as the mock or a
+  WordPress on your machine.**
 
 ## 0.1.1 - 2026-10-30
 

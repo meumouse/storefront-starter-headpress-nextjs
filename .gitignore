@@ -11,6 +11,10 @@ next-env.d.ts
 .env.local
 .env.*.local
 
+# Demo product photos (see mock-server/photos/README.md)
+mock-server/photos/*
+!mock-server/photos/README.md
+
 # Tooling
 *.tsbuildinfo
 coverage/

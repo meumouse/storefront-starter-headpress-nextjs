@@ -1,7 +1,15 @@
 /** Turns the demo catalog into WooCommerce Store API payloads, the way plugins extend them. */
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { fixtures } from "@meumouse.com/headpress/testing";
 
 import { attributes, categories, products, tags } from "../data/products.mjs";
+
+/** Product photos for the demo, kept out of Git: see `mock-server/photos/README.md`. */
+const PHOTOS = fileURLToPath(new URL("../photos/", import.meta.url));
+const PHOTO_TYPES = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
 
 const CURRENCY = {
   currency_code: "BRL",
@@ -68,9 +76,56 @@ function pricePreview(price) {
   };
 }
 
+function photoType(file) {
+  return PHOTO_TYPES[path.extname(file).toLowerCase()] ?? null;
+}
+
+/** `photos.json`: product slug → photo URLs. Read on every call, so edits show without a restart. */
+function photoLinks() {
+  try {
+    return JSON.parse(readFileSync(path.join(PHOTOS, "photos.json"), "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * A product's photos as media file names, `<slug>-<n>.<ext>`. Files in the folder win over the links of
+ * `photos.json`; a product with neither is drawn.
+ */
+function photosOf(product) {
+  const name = new RegExp(`^${product.slug}-(\\d+)\\.`, "i");
+  const files = existsSync(PHOTOS)
+    ? readdirSync(PHOTOS).filter((file) => photoType(file) && name.test(file))
+    : [];
+  if (files.length > 0) return files.sort((a, b) => Number(a.match(name)[1]) - Number(b.match(name)[1]));
+  return (photoLinks()[product.slug] ?? []).map(
+    (url, index) => `${product.slug}-${index + 1}${path.extname(new URL(url).pathname) || ".jpg"}`,
+  );
+}
+
+/** Where the media route finds a photo: a file on disk or a link. Null means it is a drawing. */
+export function photoSource(file) {
+  const type = photoType(file);
+  if (!type || path.basename(file) !== file) return null;
+  const full = path.join(PHOTOS, file);
+  if (existsSync(full)) return { path: full, type };
+  const match = file.match(/^(.+)-(\d+)\.[a-z]+$/i);
+  const url = match ? photoLinks()[match[1]]?.[Number(match[2]) - 1] : null;
+  return url ? { url, type } : null;
+}
+
 function storeImage(baseUrl, product, index = 0, label = product.name) {
-  const src = `${baseUrl}/media/${product.slug}-${index}.svg?hue=${product.hue + index * 24}`;
+  const photo = photosOf(product)[index];
+  const src = photo
+    ? `${baseUrl}/media/${photo}`
+    : `${baseUrl}/media/${product.slug}-${index}.svg?hue=${product.hue + index * 24}`;
   return { id: product.id * 10 + index, src, thumbnail: src, srcset: "", sizes: "", name: label, alt: label };
+}
+
+function imageIndexes(product) {
+  const photos = photosOf(product).length;
+  return photos > 0 ? [...Array(photos).keys()] : [0, 1, 2];
 }
 
 function prices(price, regular = price, range = null) {
@@ -174,7 +229,7 @@ function baseProduct(product, baseUrl, price = product.price) {
     prices: prices(price, product.regular ? product.regular + (price - product.price) : price),
     average_rating: String(product.rating),
     review_count: product.reviews,
-    images: [0, 1, 2].map((index) => storeImage(baseUrl, product, index)),
+    images: imageIndexes(product).map((index) => storeImage(baseUrl, product, index)),
     categories: categories
       .filter((category) => category.slug === product.category)
       .map(({ id, name, slug }) => ({ id, name, slug, link: "" })),

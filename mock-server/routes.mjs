@@ -1,5 +1,6 @@
 /** The mock's REST routes, grouped by the plugin that owns them on a real store. */
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 
 import { fixtures, json, mockHeadpress, wpError } from "@meumouse.com/headpress/testing";
 
@@ -25,6 +26,7 @@ import {
   findSellable,
   installmentPlans,
   attributeTerms,
+  photoSource,
   placeholderImage,
   shapeOfImage,
   storeCategories,
@@ -388,10 +390,35 @@ function paymentResult(order, method, baseUrl) {
   };
 }
 
+/** Linked photos fetched once per run, so the storefront talks only to the mock. */
+const linkedPhotos = new Map();
+
+/** A product photo from the photos folder or one of its links, or null to draw the product instead. */
+async function loadPhoto(file) {
+  const source = photoSource(file);
+  if (!source) return null;
+  if (source.path) return { body: await readFile(source.path), type: source.type };
+  if (!linkedPhotos.has(source.url)) {
+    const response = await fetch(source.url).catch(() => null);
+    if (!response?.ok) return null;
+    linkedPhotos.set(source.url, {
+      body: Buffer.from(await response.arrayBuffer()),
+      type: response.headers.get("content-type") ?? source.type,
+    });
+  }
+  return linkedPhotos.get(source.url);
+}
+
 export function createRoutes({ baseUrl }) {
   const server = mockHeadpress({
     // ----- Media and the stand-in for Cielo's script -----
-    "GET /media/:file": (request, { file }) => {
+    "GET /media/:file": async (request, { file }) => {
+      const photo = await loadPhoto(file);
+      if (photo) {
+        return new Response(photo.body, {
+          headers: { "Content-Type": photo.type, "Cache-Control": "public, max-age=3600" },
+        });
+      }
       const hue = Number(new URL(request.url).searchParams.get("hue") ?? 200);
       return new Response(placeholderImage(file, hue, shapeOfImage(file)), {
         headers: { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=3600" },
