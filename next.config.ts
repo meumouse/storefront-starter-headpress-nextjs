@@ -26,6 +26,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   output: "standalone",
   outputFileTracingRoot: root,
+  experimental: {
+    agentUpgrade: "security",
+  },
   images: {
     remotePatterns: [
       ...wordpressImagePatterns(),

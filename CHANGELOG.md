@@ -3,6 +3,12 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Security
+
+- **Next.js is updated from 16.4.3 to 16.4.6, which fixes a published security advisory.**
+
 ## 0.2.0 - 2026-11-19
 
 ### Added
