@@ -40,7 +40,7 @@ about commerce.
 | `field.tsx` | `Input`, `Textarea`, `Select`, `Label`, `Field`, `ChoiceLabel` |
 | `feedback.tsx` | `Alert`, `Badge`, `Skeleton`, `Spinner`, `EmptyState` |
 | `layout.tsx` | `Container`, `Card`, `PageHeading`, `Separator` |
-| `dialog.tsx` | `Dialog`, `Sheet` (Radix Dialog: focus trap, Escape, scroll lock) |
+| `dialog.tsx` | `Dialog`, `Sheet` (native modal `<dialog>`: inert page, focus, Esc and click-outside dismissal) |
 | `pagination.tsx` | `Pagination` |
 | `quantity-stepper.tsx` | `QuantityStepper` |
 | `rating.tsx` | `Rating` |

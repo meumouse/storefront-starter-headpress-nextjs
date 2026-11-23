@@ -1,6 +1,6 @@
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 import { StoreProviders } from "@/components/layout/StoreProviders";
@@ -12,6 +12,9 @@ import { safeRead } from "@/lib/headpress/safe-read";
 import "@/styles/globals.css";
 
 export const revalidate = 300;
+
+/** Matches `color-scheme` in tokens.css, so the canvas is right before the stylesheet arrives. */
+export const viewport: Viewport = { colorScheme: "light" };
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await safeRead((hp) => hp.config.get());

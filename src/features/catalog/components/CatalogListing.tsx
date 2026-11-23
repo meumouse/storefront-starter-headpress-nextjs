@@ -132,7 +132,7 @@ export async function CatalogListing({
         </div>
 
         {items.length > 0 ? (
-          <ProductGrid products={items} />
+          <ProductGrid products={items} aboveFold />
         ) : (
           <EmptyState
             icon={<SearchX />}

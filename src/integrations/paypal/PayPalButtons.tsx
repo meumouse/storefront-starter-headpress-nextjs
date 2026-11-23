@@ -53,7 +53,7 @@ export function PayPalButtons({ method, amount, getPayer, placeOrder, onError }:
         const sdk = await loadPayPalSdk(config);
         const container = containerRef.current;
         if (cancelled || !container) return;
-        container.innerHTML = "";
+        container.replaceChildren();
 
         const buttons = sdk.Buttons({
           fundingSource: config.flow === "card" ? sdk.FUNDING.CARD : sdk.FUNDING.PAYPAL,

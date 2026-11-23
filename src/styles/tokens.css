@@ -5,6 +5,12 @@
  * (`bg-canvas`, `text-ink`, `rounded-control`...), so components never name a raw color.
  */
 :root {
+  /*
+   * The palette below is light. Native UI (form controls, scrollbars, the canvas before CSS loads)
+   * follows this; list `light dark` here and in the layout's color-scheme meta once a dark palette exists.
+   */
+  color-scheme: light;
+
   /* Surfaces */
   --ds-canvas: oklch(0.985 0.003 90);
   --ds-surface: oklch(1 0 0);

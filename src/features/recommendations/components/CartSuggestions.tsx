@@ -23,7 +23,7 @@ export function CartSuggestions({ limit = 4, onNavigate }: { limit?: number; onN
 
   const inCart = cart?.items.map((item) => item.id) ?? [];
   const suggestions = useQuery({
-    queryKey: ["recommendations", "cart", [...inCart].sort(), limit],
+    queryKey: ["recommendations", "cart", inCart.toSorted(), limit],
     queryFn: async () => {
       // Ask for a few more: the cart's own products come back when they are a variation's parent.
       const ids = await contextIds(hp, "cart", { productIds: inCart, limit: Math.min(limit + inCart.length, 24) });

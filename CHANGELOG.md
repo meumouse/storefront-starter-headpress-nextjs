@@ -3,7 +3,20 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## 0.2.0 - 2026-11-19
+## Unreleased
+
+### Changed
+
+- **Dialogs and side panels (search, cart, menu, addresses, reviews) are now native `<dialog>`
+  elements: the browser makes the page inert, keeps focus inside, closes them on Esc, the back
+  gesture or a click outside, and returns focus. `@radix-ui/react-dialog` is gone.**
+- Only the first product image of a listing gets a high fetch priority, the rest of the first row
+  loads eagerly, and grids further down the page (home, related products) load lazily. The
+  deprecated `priority` prop of `next/image` is no longer used.
+- Native form controls take the brand color, and the page declares its light color scheme.
+- The checkout address form autofills the neighborhood and the state.
+- Typing an amount in a split payment with an input method (IME) no longer commits it while the
+  text is still being composed.
 
 ### Added
 

@@ -81,6 +81,7 @@ export function AddressFields({
       </Field>
       <Field label={t.checkout.neighborhood} error={errorText(fieldErrors.neighborhood)} className="sm:col-span-3">
         <Input
+          autoComplete="address-level3"
           value={values.neighborhood ?? ""}
           onChange={(event) => actions.set({ neighborhood: event.target.value })}
         />
@@ -93,7 +94,7 @@ export function AddressFields({
         />
       </Field>
       <Field label={t.checkout.state} error={errorText(fieldErrors.state)} className="sm:col-span-2">
-        <Select value={values.state ?? ""} onChange={(event) => actions.set({ state: event.target.value })}>
+        <Select autoComplete="address-level1" value={values.state ?? ""} onChange={(event) => actions.set({ state: event.target.value })}>
           <option value="" />
           {BRAZILIAN_STATES.map((state_) => (
             <option key={state_} value={state_}>

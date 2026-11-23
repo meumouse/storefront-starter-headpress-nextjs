@@ -34,34 +34,13 @@
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-
-  --animate-fade-in: fade-in var(--ds-duration) var(--ds-ease);
-  --animate-sheet-in: sheet-in 240ms var(--ds-ease);
-  --animate-dialog-in: dialog-in 200ms var(--ds-ease);
-
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-  }
-
-  @keyframes sheet-in {
-    from {
-      transform: translateX(100%);
-    }
-  }
-
-  @keyframes dialog-in {
-    from {
-      opacity: 0;
-      transform: translateY(0.5rem) scale(0.98);
-    }
-  }
 }
 
 @layer base {
   html {
     scroll-padding-top: calc(var(--ds-header-height) + 1rem);
+    /* Native checkboxes, radios, ranges and progress bars take the brand color. */
+    accent-color: var(--ds-brand);
   }
 
   body {
@@ -95,5 +74,113 @@
   ::after {
     animation-duration: 1ms !important;
     transition-duration: 1ms !important;
+  }
+}
+
+/*
+ * Native modal <dialog> panels (src/components/ui/dialog.tsx). They transition `display` and
+ * `overlay` so they stay in the top layer while they fade out; browsers without that keep the
+ * panel open with `data-closing` until the transition ends. Selectors stay flat so each
+ * `@starting-style` rule matches its open state with equal specificity.
+ */
+@layer components {
+  .ds-overlay {
+    --overlay-duration: 200ms;
+
+    max-width: none;
+    max-height: none;
+    padding: 0;
+    overflow: hidden;
+    color: var(--ds-ink);
+    background: var(--ds-surface);
+    box-shadow: var(--ds-shadow-float);
+    /* Scrolling inside the panel, or over its backdrop, must not scroll the page behind it. */
+    overscroll-behavior: contain;
+    opacity: 0;
+    transition-property: opacity, translate, scale, display, overlay;
+    transition-duration: var(--overlay-duration);
+    transition-timing-function: var(--ds-ease);
+    transition-behavior: allow-discrete;
+  }
+
+  .ds-overlay::backdrop {
+    overflow: hidden;
+    overscroll-behavior: contain;
+    background-color: transparent;
+    transition-property: background-color, display, overlay;
+    transition-duration: var(--overlay-duration);
+    transition-timing-function: var(--ds-ease);
+    transition-behavior: allow-discrete;
+  }
+
+  .ds-overlay[open]:where(:not([data-closing])) {
+    opacity: 1;
+    translate: 0;
+    scale: 1;
+  }
+
+  .ds-overlay[open]:where(:not([data-closing]))::backdrop {
+    background-color: var(--ds-overlay);
+  }
+
+  .ds-dialog {
+    width: calc(100% - 2rem);
+    max-width: 32rem;
+    max-height: 84dvh;
+    margin: 8dvh auto auto;
+    border-radius: var(--ds-radius-card);
+  }
+
+  .ds-sheet {
+    --overlay-duration: 240ms;
+
+    inset: 0 0 0 auto;
+    width: 100%;
+    max-width: 28rem;
+    height: 100dvh;
+    margin: 0;
+  }
+
+  @media (min-width: 40rem) {
+    .ds-sheet {
+      border-start-start-radius: var(--ds-radius-sheet);
+      border-end-start-radius: var(--ds-radius-sheet);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ds-dialog {
+      translate: 0 0.5rem;
+      scale: 0.98;
+    }
+
+    .ds-sheet {
+      opacity: 1;
+      translate: 100% 0;
+    }
+  }
+}
+
+@starting-style {
+  .ds-overlay[open] {
+    opacity: 0;
+  }
+
+  .ds-overlay[open]::backdrop {
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @starting-style {
+    .ds-dialog[open] {
+      translate: 0 0.5rem;
+      scale: 0.98;
+    }
+
+    .ds-sheet[open] {
+      opacity: 1;
+      translate: 100% 0;
+    }
   }
 }

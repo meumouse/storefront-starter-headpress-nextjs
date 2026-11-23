@@ -9,7 +9,10 @@ import { t } from "@/i18n";
 import { ProductImage } from "./ProductImage";
 import { ProductPrice } from "./ProductPrice";
 
-export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
+/** `lcp` is the one image worth a high fetch priority; `eager` skips lazy loading above the fold. */
+export type CardImageLoading = "lcp" | "eager" | "lazy";
+
+export function ProductCard({ product, imageLoading = "lazy" }: { product: Product; imageLoading?: CardImageLoading }) {
   const image = product.images[0];
 
   return (
@@ -20,7 +23,8 @@ export function ProductCard({ product, priority = false }: { product: Product; p
             src={image.src}
             alt={image.alt || product.name}
             fill
-            priority={priority}
+            loading={imageLoading === "lazy" ? undefined : "eager"}
+            fetchPriority={imageLoading === "lcp" ? "high" : undefined}
             sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
             className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
@@ -45,11 +49,15 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   );
 }
 
-export function ProductGrid({ products }: { products: Product[] }) {
+/** Pass `aboveFold` only where the grid opens the page; elsewhere every image loads lazily. */
+export function ProductGrid({ products, aboveFold = false }: { products: Product[]; aboveFold?: boolean }) {
+  const loadingFor = (index: number): CardImageLoading =>
+    !aboveFold || index >= 4 ? "lazy" : index === 0 ? "lcp" : "eager";
+
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
       {products.map((product, index) => (
-        <ProductCard key={product.id} product={product} priority={index < 4} />
+        <ProductCard key={product.id} product={product} imageLoading={loadingFor(index)} />
       ))}
     </div>
   );

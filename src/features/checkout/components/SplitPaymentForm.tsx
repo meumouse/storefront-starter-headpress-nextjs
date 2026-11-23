@@ -52,6 +52,8 @@ function AmountInput({ value, onCommit }: { value: Money; onCommit(amount: numbe
       onKeyDown={(event) => {
         if (event.key === "Enter") {
           event.preventDefault();
+          // Enter also confirms an IME composition; keyCode 229 covers Safari, which clears isComposing first.
+          if (event.nativeEvent.isComposing || event.keyCode === 229) return;
           commit();
         }
       }}
