@@ -7,20 +7,18 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- **Dialogs and side panels (search, cart, menu, addresses, reviews) are now native `<dialog>`
-  elements: the browser makes the page inert, keeps focus inside, closes them on Esc, the back
-  gesture or a click outside, and returns focus. `@radix-ui/react-dialog` is gone.**
-- Only the first product image of a listing gets a high fetch priority, the rest of the first row
-  loads eagerly, and grids further down the page (home, related products) load lazily. The
-  deprecated `priority` prop of `next/image` is no longer used.
-- Native form controls take the brand color, and the page declares its light color scheme.
-- The checkout address form autofills the neighborhood and the state.
-- Typing an amount in a split payment with an input method (IME) no longer commits it while the
-  text is still being composed.
+- **Dialogs and side panels use native `<dialog>`; `@radix-ui/react-dialog` is removed.**
+- Only the first product image gets high fetch priority; lower grids load lazily.
+- Native form controls use the brand color.
+- The checkout address form autofills the neighborhood and state.
+
+### Fixed
+
+- Split payment amounts no longer commit while an IME is still composing.
 
 ### Security
 
-- **Next.js is updated from 16.4.3 to 16.4.6, which fixes a published security advisory.**
+- **Next.js updated to 16.4.6 for a security advisory.**
 
 ## 0.2.0 - 2026-11-19
 

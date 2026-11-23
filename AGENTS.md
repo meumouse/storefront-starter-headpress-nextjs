@@ -71,8 +71,9 @@ add one line to `src/features/checkout/payments/registry.ts`.
 
 ## Commits
 
-Imperative subject that states the effect of the change, no prefix, no trailing period, for example
-`Quote shipping through Envora on the product page`.
+One short, direct sentence and nothing else: imperative, about 50 characters at most, no body, no
+prefix, no trailing period. Name the main effect, not every detail; the details go in the changelog.
+For example `Quote shipping on the product page` or `Update Next.js to 16.4.6`.
 
 ## Changelog
 
