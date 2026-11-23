@@ -18,6 +18,12 @@ All notable changes to this project are documented here. The format follows
 - Typing an amount in a split payment with an input method (IME) no longer commits it while the
   text is still being composed.
 
+### Security
+
+- **Next.js is updated from 16.4.3 to 16.4.6, which fixes a published security advisory.**
+
+## 0.2.0 - 2026-11-19
+
 ### Added
 
 - **Reviews now show customers' photos and videos, filter by stars, sort, take helpful votes, and

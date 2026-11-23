@@ -26,6 +26,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   output: "standalone",
   outputFileTracingRoot: root,
+  experimental: {
+    agentUpgrade: "security",
+  },
   images: {
     // Next refuses to optimize images from local addresses, which is where the mock and a WordPress on
     // your machine live. Allowed only in development: in production it would open an SSRF path.
